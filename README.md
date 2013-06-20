@@ -7,6 +7,11 @@ The files are a bit wonky right now from being ripped out of Acorn, there's debu
 # What works
 Reading and writing of 8 bit bitmap layers.  Text and layer styles are not currently supported (but we'll happily take patches).
 
+# PSD File Format
+http://www.adobe.com/devnet-apps/photoshop/fileformatashtml/
+
+Fun times.
+
 # License
 Copyright (C) 2013 Flying Meat Inc.
 
