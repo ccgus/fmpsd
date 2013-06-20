@@ -235,15 +235,10 @@
             [extraDataStream writeInt8:255]; // lcolor
             [extraDataStream writeInt8:0]; // lflags
             [extraDataStream writeInt16:0];
-            
-            
         }
         else {
             [extraDataStream writeInt32:0];
         }
-        
-        
-        
         
         // Layer blending ranges: See Table 1.19.
         [extraDataStream writeInt32:0];
@@ -287,7 +282,6 @@
         
         [stream writeDataWithLengthHeader:[extraDataStream outputData]];
     }
-    
 }
 
 
@@ -984,7 +978,6 @@ void decodeRLE(char *src, int sindex, int slen, char *dst, int dindex) {
         
         FMPSDPixel *c = CGBitmapContextGetData(ctx);//[foo mutableBytes];
         
-#if 1
         size_t ops = 3;
         
         dispatch_queue_t queue = dispatch_get_global_queue(0, DISPATCH_QUEUE_PRIORITY_HIGH);
@@ -1018,24 +1011,7 @@ void decodeRLE(char *src, int sindex, int slen, char *dst, int dindex) {
             
         });
         
-#else
-        
-        while (j < (int)n) {
-            
-            FMPSDPixelCo ac = a[j];
-            FMPSDPixelCo rc = r[j];
-            FMPSDPixelCo gc = g[j];
-            FMPSDPixelCo bc = b[j];
-            
-            c[j].a = ac;
-            c[j].r = (rc * ac + 127) / 255;
-            c[j].g = (gc * ac + 127) / 255;
-            c[j].b = (bc * ac + 127) / 255;
-            
-            j++;
-        }
-#endif
-        
+
         _image = CGBitmapContextCreateImage(ctx);
         
         //CGColorSpaceRelease(cs);
@@ -1244,8 +1220,6 @@ void decodeRLE(char *src, int sindex, int slen, char *dst, int dindex) {
     for (FMPSDLayer *layer in _layers) {
         [layer printTree:spacing];
     }
-    
-    
 }
 
 - (NSInteger)countOfSubLayers {
@@ -1270,7 +1244,6 @@ void decodeRLE(char *src, int sindex, int slen, char *dst, int dindex) {
     _channelIds[1] = 1;
     _channelIds[2] = 2;
     _channelIds[3] = -1;
-    
 }
 
 @end

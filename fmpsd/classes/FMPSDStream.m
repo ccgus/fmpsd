@@ -45,9 +45,7 @@
 - (id)initWithInputURL:(NSURL*)fileURL {
 	self = [super init];
 	if (self != nil) {
-		//_inputStream = [[NSInputStream inputStreamWithURL:fileURL] retain];
-        //[_inputStream open];
-        
+
         NSError *err = nil;
         _inputDataStream = [NSData dataWithContentsOfURL:fileURL options:NSDataReadingMapped error:&err];
         if (!_inputDataStream && err) {
@@ -274,22 +272,7 @@
 
 
 - (void)skipLength:(NSUInteger)len {
-    
     _location += len;
-    
-    /*
-    if (!len) {
-        return;
-    }
-    
-    char *foo = malloc(len);
-    
-    if ([self read:(uint8*)foo maxLength:len] < 0) {
-        debug(@"hey wtf?!");
-    }
-    
-    free(foo);
-     */
 }
 
 - (long)location {
@@ -307,27 +290,8 @@
     NSMutableData *data     = [NSMutableData dataWithLength:len];
     uint8_t *p              = [data mutableBytes];
     
-    /*NSUInteger read =*/ [self read:p maxLength:leftToRead];
-    /*
-    p += read;
+    [self read:p maxLength:leftToRead];
     
-    leftToRead = leftToRead - read;
-    
-    while (leftToRead > 0) {
-        
-        read = [self read:p maxLength:leftToRead];
-        p += read;
-        
-        leftToRead = leftToRead - read;
-    }
-    
-    assert(leftToRead == 0);
-    
-    if ([data length] != len) {
-        debug(@"shit the lengths are wrong!  Asked for %ld, got %ld", len, [data length]);
-        assert(NO);
-    }
-    */
     return data;
 }
 

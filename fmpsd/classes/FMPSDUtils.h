@@ -94,8 +94,3 @@ FOUNDATION_STATIC_INLINE FMPSDPixel FMPSDPremultiply(FMPSDPixel p) {
     return ret;
     
 }
-
-
-
-
-

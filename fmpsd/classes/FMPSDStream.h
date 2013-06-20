@@ -10,7 +10,7 @@
 
 
 @interface FMPSDStream : NSObject {
-    NSInputStream  *_inputStream;
+
     NSOutputStream *_outputStream;
     
     NSData *_inputDataStream;

@@ -26,8 +26,6 @@
 
 #define TSDebug(...) { if (TSDebugOn) { NSLog(__VA_ARGS__); } }
 
-
-
 enum {
     FMPSDBitmapMode = 0,
     FMPSDGrayscaleMode = 1,
@@ -99,8 +97,6 @@ extern BOOL FMPSDPrintDebugInfo;
 
 @end
 
-#define fmpsdassert assert
-
 #define FMPSDCheck8BIMSig(psd__sig__, psd__stream__, err__) { \
 psd__sig__ = [psd__stream__ readInt32];\
 if (!((psd__sig__ == '8BIM') || (psd__sig__ == 'MeSa'))) { \
@@ -112,88 +108,3 @@ return NO;\
 
 void FMPSDDebug(NSString *format, ...);
 
-
-#ifdef FMPSDTESTS
-
-
-typedef uint8_t  TSPixelCo;
-
-typedef struct _TSPixel {
-    // intel is little endian
-#ifdef __LITTLE_ENDIAN__
-    TSPixelCo b;
-    TSPixelCo g;
-    TSPixelCo r;
-    TSPixelCo a;
-#else
-    TSPixelCo a;
-    TSPixelCo r;
-    TSPixelCo g;
-    TSPixelCo b;
-#endif
-} TSPixel;
-
-char assert_TSPixel_size[sizeof(TSPixel)  == sizeof(uint32_t) ? 1 : -1];
-
-FOUNDATION_STATIC_INLINE TSPixel TSPremultiply(TSPixel p) {
-    
-    vImage_Buffer buf;
-    buf.data = &p;
-    buf.height = 1;
-    buf.width = 1;
-    buf.rowBytes = sizeof(TSPixel);
-    
-    TSPixel ret;
-    vImage_Buffer dest;
-    dest.data = &ret;
-    dest.height = 1;
-    dest.width = 1;
-    dest.rowBytes = sizeof(TSPixel);
-    
-    vImagePremultiplyData_ARGB8888(&buf, &dest, 0);
-    
-    return ret;
-    
-}
-
-FOUNDATION_STATIC_INLINE TSPixel TSUnPremultiply(TSPixel p) {
-    
-    if (p.a == 0) {
-        return p;
-    }
-    
-    p.r = (p.r * 255 + p.a / 2) / p.a;
-    p.g = (p.g * 255 + p.a / 2) / p.a;
-    p.b = (p.b * 255 + p.a / 2) / p.a;
-    
-    return p;
-}
-
-
-FOUNDATION_STATIC_INLINE BOOL TSEqualPixels(TSPixel a, TSPixel b) {
-    return (*(uint32_t *)(void *)&(a)) == (*(uint32_t *)(void *)&(b));
-    //return (a.a == b.a && a.r == b.r && a.g == b.g && a.b == b.b);
-}
-
-
-typedef struct _TSPoint {
-    NSUInteger x;
-    NSUInteger y;
-} TSPoint;
-
-FOUNDATION_STATIC_INLINE TSPoint TSMakePoint(size_t x, size_t y) {
-    TSPoint p;
-    p.x = x;
-    p.y = y;
-    return p;
-}
-
-
-FOUNDATION_STATIC_INLINE TSPoint TSPointFromNSPoint(NSPoint np) {
-    TSPoint p;
-    p.x = np.x;
-    p.y = np.y;
-    return p;
-}
-
-#endif

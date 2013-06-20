@@ -115,18 +115,6 @@
             
             uint32 size = [stream readInt32];
             [stream skipLength:size];
-            
-            /*
-            debug(@"size: %d", size);
-            
-            for (int i = 0; i < 2; i++) {
-                uint8 ch = [stream readInt8];
-                assert(ch == 10);
-            }
-            
-            debug(@"yay");
-            */
-            
         }
         else if (type == 'Objc') {
             uint32 size = [stream readInt32];
@@ -139,13 +127,7 @@
             exit(0);
             return NO;
         }
-        
-        
-        //String key = stream.readPsdString().trim();
-        //logger.finest("PsdDescriptor.key: " + key);
-        //objects.put(key, PsdObjectBase.loadPsdObject(stream));
     }
-    
     
     return YES;
 }

@@ -581,16 +581,6 @@ BOOL FMPSDPrintDebugInfo = NO;
     
     i = [sourceOver valueForKey:kCIOutputImageKey];
     
-    /*
-    for (FMPSDLayer *layer in [_baseLayerGroup layers]) {
-        
-        CIFilter *sourceOver = [CIFilter filterWithName:@"CISourceOverCompositing"];
-        [sourceOver setValue:[layer CIImageForComposite] forKey:kCIInputImageKey];
-        [sourceOver setValue:i forKey:kCIInputBackgroundImageKey];
-        
-        i = [sourceOver valueForKey:kCIOutputImageKey];
-    }*/
-    
     return i;
     
 }
