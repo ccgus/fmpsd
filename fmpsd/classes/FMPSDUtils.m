@@ -183,6 +183,7 @@ CGContextRef FMPSDCGBitmapContextCreate(NSSize size, CGColorSpaceRef cs) {
     return context;
 }
 
+FMPSDPixel *FMPSDPixelAddressForPointInLocalContext(CGContextRef context, NSPoint p);
 FMPSDPixel *FMPSDPixelAddressForPointInLocalContext(CGContextRef context, NSPoint p) {
     
     FMPSDPixel *basePtr   = CGBitmapContextGetData(context);
