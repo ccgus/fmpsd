@@ -621,9 +621,9 @@
                         break;
                 }
             }
-            /*
-            else if (tag == 'TySh') { // this is all in TABLE 1.49
-                
+
+            else if (tag == 'TySh') {
+                // http://www.adobe.com/devnet-apps/photoshop/fileformatashtml/PhotoshopFileFormats.htm#50577409_19762
                 long textStartLocation = [stream location];
                 
                 uint16 version = [stream readInt16];
@@ -641,12 +641,12 @@
                 t.tx = [stream readDouble64];
                 t.ty = [stream readDouble64];
                 
-//                debug(@"t.a: %f", t.a);
-//                debug(@"t.b: %f", t.b);
-//                debug(@"t.c: %f", t.c);
-//                debug(@"t.d: %f", t.d);
-//                debug(@"t.tx: %f", t.tx);
-//                debug(@"t.ty: %f", t.ty);
+                debug(@"t.a: %f", t.a);
+                debug(@"t.b: %f", t.b);
+                debug(@"t.c: %f", t.c);
+                debug(@"t.d: %f", t.d);
+                debug(@"t.tx: %f", t.tx);
+                debug(@"t.ty: %f", t.ty);
                 
                 //[stream skipLength:6*8]; // this is the tranform.
                 
@@ -667,7 +667,6 @@
                 // the rest is the fancy rich text, which I'm not handling just yet.
                 
             }
-             */
             else {
                 [stream skipLength:sigSize];
             }

@@ -39,8 +39,13 @@
 
 - (BOOL)readStream:(FMPSDStream*)stream {
     
-    uint32 nameLen = [stream readInt32] * 2;
-    [stream skipLength:nameLen];
+    NSString *t = [stream readPSDString16];
+    debug(@"[stream location]: %ld", [stream location]);
+    debug(@"t: '%@'", t);
+    
+    // http://www.adobe.com/devnet-apps/photoshop/fileformatashtml/PhotoshopFileFormats.htm#50577411_21585
+    //uint32 nameLen = [stream readInt32] * 2;
+    //[stream skipLength:nameLen];
     
     [stream readInt32];
     uint32 classId = [stream readInt32];
@@ -77,8 +82,9 @@
      */
      
     for (uint32 i = 0; i < itemsCount; i++) {
-        
-        NSString *key = [stream readPSDString];// yes, this is really a string.
+    
+        // Key: 4 bytes ( length) followed either by string or (if length is zero) 4-byte key
+        NSString *key = [stream readPSDString];
         uint32 type = [stream readInt32];
         
         #pragma unused(key)
@@ -87,19 +93,43 @@
         
         if (type == 'TEXT') {
             NSString *s = [stream readPSDString16];
-            
+            debug(@"s: '%@'", s);
             if (s) {
                 [_attributes setObject:stream forKey:key];
             }
         }
         else if (type == 'enum') {
+            /*
+            Variable Unicode string: name from ClassID.
+            Variable ClassID: 4 bytes (length), followed either by string or (if length is zero) 4-byte classID
+            Variable TypeID: 4 bytes (length), followed either by string or (if length is zero) 4-byte typeID
+            Variable enum: 4 bytes (length), followed either by string or (if length is zero) 4-byte enum
+            */
+
             
-            NSString *typeId    = [stream readPSDString];
-            NSString *typeVal   = [stream readPSDString];
+            NSString *classIDString    = [stream readPSDString]; // Unicode string: name from ClassID.
+            debug(@"enum classIDString: '%@'", classIDString);
             
-            (void)typeId;
-            (void)typeVal;
-            //debug(@"typeId: '%@' = %@", typeId, typeVal);
+            // ClassID: 4 bytes (length), followed either by string or (if length is zero) 4-byte classID
+            uint32 enumClassID;
+            NSString *enumClassIDString   = [stream readPSDStringOrGetFourByteID:&enumClassID];
+            
+            debug(@"enumClassIDString: '%@'", enumClassIDString);
+            debug(@"enumClassID: %@", NSFileTypeForHFSTypeCode(enumClassID));
+            
+            // TypeID: 4 bytes (length), followed either by string or (if length is zero) 4-byte typeID
+            uint32 enumTypeID;
+            NSString *enumTypeIDString   = [stream readPSDStringOrGetFourByteID:&enumTypeID];
+            
+            debug(@"enumTypeIDString: '%@'", enumTypeIDString);
+            debug(@"enumTypeID: %@", NSFileTypeForHFSTypeCode(enumTypeID));
+            
+            // enum: 4 bytes (length), followed either by string or (if length is zero) 4-byte enum
+            uint32 enumValue;
+            NSString *enumValueString   = [stream readPSDStringOrGetFourByteID:&enumValue];
+            
+            debug(@"enumValueString: '%@'", enumValueString);
+            debug(@"enumValue: %@", NSFileTypeForHFSTypeCode(enumValue));
         }
         else if (type == 'long') {
             uint32 val = [stream readInt32];

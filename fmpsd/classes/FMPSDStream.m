@@ -229,6 +229,29 @@
     return s;
 }
 
+// 4 bytes (length), followed either by string or (if length is zero) 4-byte classID
+- (NSString*)readPSDStringOrGetFourByteID:(uint32*)outId {
+    sint32 size = [self readInt32];
+    
+    debug(@"size: %ld", size);
+    
+    if (size <= 0) {
+        *outId = [self readInt32];
+        return nil;
+    }
+    
+    char *c = malloc(sizeof(char) * (size + 1));
+    [self readChars:c maxLength:size];
+    c[size+1] = 0;
+    
+    NSString *s = [NSString stringWithFormat:@"%s", c];
+    
+    free(c);
+    
+    return s;
+    
+}
+
 - (NSString*)readPSDString {
     
     sint32 size = [self readInt32];
