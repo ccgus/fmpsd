@@ -10,6 +10,7 @@
 #import "FMPSD.h"
 #import "FMPSDUtils.h"
 #import "FMPSDCIFilters.h"
+#import "FMPSDTextEngineParser.h"
 #import <Accelerate/Accelerate.h>
 
 
@@ -670,7 +671,7 @@
                 
                 uint64 stringLength = [stream readInt64];
                 
-                NSString *engineDataTag = [stream readPSDStringOfLength:stringLength];
+                NSString *engineDataTag = [stream readPSDStringOfLength:(uint32)stringLength];
                 
                 FMAssert([engineDataTag isEqualToString:@"EngineData"]);
                 
@@ -678,19 +679,22 @@
                 
                 FMAssert(tdtaTag == 'tdta');
                 
-                NSString *rtf = [stream readPSDString];
+                uint32 rtfLength = [stream readInt32];
+                NSData *rtfData = [stream readDataOfLength:rtfLength];
                 
-                debug(@"rtf: '%@'", rtf);
+                FMPSDTextEngineParser *parser = [FMPSDTextEngineParser new];
+                [parser parseData:rtfData];
+                
+                FMAssert(rtfLength == [rtfData length]);
+                
+                debug(@"[stream location]: %ld", [stream location]);
                 
                 long currentLoc = [stream location];
                 long delta = (textStartLocation + sigSize) - currentLoc;
                 
-                FMAssert(delta == 0);
+                debug(@"delta: %ld", delta);
                 
-                //[stream skipLength:delta];
-                
-                // the rest is the fancy rich text, which I'm not handling just yet.
-                
+                [stream skipLength:delta];
             }
             else {
                 [stream skipLength:sigSize];

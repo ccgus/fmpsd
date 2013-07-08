@@ -252,39 +252,32 @@
 
 - (NSString*)readPSDString {
     
-    sint32 size = [self readInt32];
+    uint32 size = [self readInt32];
     
-    if (size <= 0) {
+    if (size == 0) {
         size = 4;
     }
     
     return [self readPSDStringOfLength:size];
 }
 
-- (NSString*)readPSDStringOfLength:(sint32)size {
+- (NSString*)readPSDStringOfLength:(uint32)size {
     
     char *c = malloc(sizeof(char) * (size + 1));
     
-    
-    #pragma message "FIXME: OH GOD OH GOD GOTTA DO SOMETHING LIKE THIS HERE"
-    This line is purposefully left to to not compile, so that Gus will fix this right away the next time he works on it.
-    /*
-    while ((read = [self readChars:c maxLength:buffSize]) > 0) {
-        [data appendBytes:c length:read];
-    }
-    */
-    
-    
-    [self readChars:c maxLength:size];
+    NSInteger read = [self readChars:c maxLength:size];
     c[size] = 0;
+    
+    FMAssert(read == size);
     
     NSString *s = [NSString stringWithFormat:@"%s", c];
     
     free(c);
     
+    FMAssert([s length] == size);
+    
     return s;
 }
-
 
 - (NSString*)readPascalString {
     
