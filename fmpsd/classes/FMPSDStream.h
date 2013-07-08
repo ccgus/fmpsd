@@ -33,6 +33,7 @@
 - (double)readDouble64;
 - (NSInteger)readChars:(char *)buffer maxLength:(NSUInteger)len;
 - (NSString*)readPSDString;
+- (NSString*)readPSDStringOfLength:(sint32)size;
 - (NSString*)readPSDStringOrGetFourByteID:(uint32*)outId;
 - (NSString*)readPascalString;
 - (NSString*)readPSDString16;

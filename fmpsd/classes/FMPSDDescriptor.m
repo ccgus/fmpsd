@@ -36,6 +36,72 @@
 	return self;
 }
 
+- (void)readEnumFromStream:(FMPSDStream*)stream {
+    
+    /*
+     
+     00008ce0  00 00 00 0c 74 65 78 74  47 72 69 64 64 69 6e 67  |....textGridding|
+     00008cf0  65 6e 75 6d 00 00 00 0c  74 65 78 74 47 72 69 64  |enum....textGrid| classIDString
+     00008d00  64 69 6e 67 00 00 00 00  4e 6f 6e 65 00 00 00 00  |ding....None....| ClassID (None) | TypeID Length (0)
+     00008d10  4f 72 6e 74 65 6e 75 6d  00 00 00 00 4f 72 6e 74  |Orntenum....Ornt| TypeID (Ornt)
+     00008d20  00 00 00 00 48 72 7a 6e  00 00 00 00 41 6e 74 41  |....Hrzn....AntA|
+     00008d30  65 6e 75 6d 00 00 00 00  41 6e 6e 74 00 00 00 0e  |enum....Annt....|
+     00008d40  61 6e 74 69 41 6c 69 61  73 53 68 61 72 70 00 00  |antiAliasSharp..|
+     
+     Variable Unicode string: name from ClassID.
+     Variable ClassID: 4 bytes (length), followed either by string or (if length is zero) 4-byte classID
+     Variable TypeID: 4 bytes (length), followed either by string or (if length is zero) 4-byte typeID
+     Variable enum: 4 bytes (length), followed either by string or (if length is zero) 4-byte enum
+     */
+    
+    
+    NSString *classIDString    = [stream readPSDString]; // Unicode string: name from ClassID.
+    debug(@"enumclassIDString: '%@'", classIDString);
+    
+    if ([classIDString isEqualToString:@"textGridding"]) {
+        [stream skipLength:56];
+        return;
+    }
+    
+    // ClassID: 4 bytes (length), followed either by string or (if length is zero) 4-byte classID
+    uint32 enumClassID;
+    NSString *enumClassIDString   = [stream readPSDStringOrGetFourByteID:&enumClassID];
+    
+    debug(@"enumClassIDString: '%@'", enumClassIDString);
+    debug(@"enumClassID: %@", NSFileTypeForHFSTypeCode(enumClassID));
+    
+    // TypeID: 4 bytes (length), followed either by string or (if length is zero) 4-byte typeID
+    uint32 enumTypeID;
+    NSString *enumTypeIDString   = [stream readPSDStringOrGetFourByteID:&enumTypeID];
+    
+    debug(@"enumTypeIDString: '%@'", enumTypeIDString);
+    debug(@"enumTypeID: %@", NSFileTypeForHFSTypeCode(enumTypeID));
+    
+    // enum: 4 bytes (length), followed either by string or (if length is zero) 4-byte enum
+    uint32 enumMarker = [stream readInt32];
+    FMAssert(enumMarker == 'enum');
+    
+    uint32 enumValue;
+    NSString *enumValueString   = [stream readPSDStringOrGetFourByteID:&enumValue];
+    
+    debug(@"enumValueString: '%@'", enumValueString);
+    debug(@"enumValue: %@", NSFileTypeForHFSTypeCode(enumValue));
+}
+
+- (void)skipDescriptorFromStream:(FMPSDStream*)stream {
+    
+    uint32 size = [stream readInt32];
+    
+    if (size == 1) {
+        size++;
+        debug(@"ARE YOU FUCKING SERIOUS?  WHY WHY WHY?");
+    }
+    
+    [stream skipLength:size];
+    
+    debug(@"after reading bounds, we are now at offset %ld", [stream location]);
+}
+
 
 - (BOOL)readStream:(FMPSDStream*)stream {
     
@@ -47,15 +113,16 @@
     //uint32 nameLen = [stream readInt32] * 2;
     //[stream skipLength:nameLen];
     
-    [stream readInt32];
-    uint32 classId = [stream readInt32];
+    uint32 classId;
+    NSString *classIdString = [stream readPSDStringOrGetFourByteID:&classId];
     uint32 itemsCount = [stream readInt32];
     
+    debug(@"classIdString: '%@'", classIdString);
     debug(@"classId: '%@'", NSFileTypeForHFSTypeCode(classId));
     debug(@"itemsCount: %d", itemsCount);
     
     if (classId == 'TxLr') {
-        debug(@"HOLY HELL IT'S A TEXT LAYER");
+        //debug(@"HOLY HELL IT'S A TEXT LAYER");
         // ...
     }
     
@@ -82,15 +149,18 @@
      */
      
     for (uint32 i = 0; i < itemsCount; i++) {
-    
+        
+        debug(@"reading key/type #%d at offset %ld", i+1, [stream location]);
+        
         // Key: 4 bytes ( length) followed either by string or (if length is zero) 4-byte key
-        NSString *key = [stream readPSDString];
-        uint32 type = [stream readInt32];
+        uint32 type = 0;
+        NSString *key = [stream readPSDStringOrGetFourByteID:&type];
         
         #pragma unused(key)
-        debug(@"key: '%@'", key);
+        debug(@"%d key: '%@'", i, key);
         debug(@"type: %@", NSFileTypeForHFSTypeCode(type));
         
+        /*
         if (type == 'TEXT') {
             NSString *s = [stream readPSDString16];
             debug(@"s: '%@'", s);
@@ -98,38 +168,24 @@
                 [_attributes setObject:stream forKey:key];
             }
         }
+        else
+            */if (type == 'Txt ') {
+            
+            uint32 textTag = [stream readInt32];
+            debug(@"textTag: %@", NSFileTypeForHFSTypeCode(textTag));
+            FMAssert(textTag == 'TEXT');
+            
+            NSString *layerText = [stream readPSDString16];
+            
+            if (layerText) {
+                [_attributes setObject:layerText forKey:@"layerText"];
+            }
+            
+            debug(@"layerText: '%@'", layerText);
+            // ok...
+        }
         else if (type == 'enum') {
-            /*
-            Variable Unicode string: name from ClassID.
-            Variable ClassID: 4 bytes (length), followed either by string or (if length is zero) 4-byte classID
-            Variable TypeID: 4 bytes (length), followed either by string or (if length is zero) 4-byte typeID
-            Variable enum: 4 bytes (length), followed either by string or (if length is zero) 4-byte enum
-            */
-
-            
-            NSString *classIDString    = [stream readPSDString]; // Unicode string: name from ClassID.
-            debug(@"enum classIDString: '%@'", classIDString);
-            
-            // ClassID: 4 bytes (length), followed either by string or (if length is zero) 4-byte classID
-            uint32 enumClassID;
-            NSString *enumClassIDString   = [stream readPSDStringOrGetFourByteID:&enumClassID];
-            
-            debug(@"enumClassIDString: '%@'", enumClassIDString);
-            debug(@"enumClassID: %@", NSFileTypeForHFSTypeCode(enumClassID));
-            
-            // TypeID: 4 bytes (length), followed either by string or (if length is zero) 4-byte typeID
-            uint32 enumTypeID;
-            NSString *enumTypeIDString   = [stream readPSDStringOrGetFourByteID:&enumTypeID];
-            
-            debug(@"enumTypeIDString: '%@'", enumTypeIDString);
-            debug(@"enumTypeID: %@", NSFileTypeForHFSTypeCode(enumTypeID));
-            
-            // enum: 4 bytes (length), followed either by string or (if length is zero) 4-byte enum
-            uint32 enumValue;
-            NSString *enumValueString   = [stream readPSDStringOrGetFourByteID:&enumValue];
-            
-            debug(@"enumValueString: '%@'", enumValueString);
-            debug(@"enumValue: %@", NSFileTypeForHFSTypeCode(enumValue));
+            [self readEnumFromStream:stream];
         }
         else if (type == 'long') {
             uint32 val = [stream readInt32];
@@ -152,8 +208,113 @@
             
             debug(@"size: %uld", size);
         }
+        else if (type == 'Ornt') {
+            
+            
+            uint32 enumTag = [stream readInt32];
+            FMAssert(enumTag == 'enum');
+            
+            uint32 junkIntKey = 0;
+            NSString *junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey];
+            
+            FMAssert(junkIntKey == 'Ornt'); // ok, what other types might this be?
+            
+            junkIntKey = 0;
+            junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey];
+            
+            FMAssert(junkIntKey == 'Hrzn'); // ok, what other types might this be?
+            
+        }
+        else if (type == 'AntA') {
+            
+            uint32 enumTag = [stream readInt32];
+            FMAssert(enumTag == 'enum');
+            
+            uint32 junkIntKey = 0;
+            NSString *junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey];
+            
+            FMAssert(junkIntKey == 'Annt'); // ok, what other types might this be?
+            
+            // we don't do anything with this value right now - (antiAliasSharp(the 4 char key is null of course)|'Anno'(None)|'AnCr'(crisp)|'AnSt'(strong)|'AnSm'(smooth))
+            junkIntKey = 0;
+            junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey];
+            
+            debug(@"junkIntKey: %@", NSFileTypeForHFSTypeCode(junkIntKey));
+            debug(@"junkStringKey: '%@'", junkStringKey);
+            
+        }
+        else if ([key isEqualToString:@"textGridding"]) {
+            FMAssert(!type);
+            
+            uint32 enumTag = [stream readInt32];
+            FMAssert(enumTag == 'enum');
+            
+            NSString *textGriddingString = [stream readPSDString];
+            FMAssert([textGriddingString isEqualToString:@"textGridding"]);
+            
+            enumTag = 0;
+            NSString *textGriddingTagTypeStringWhatever = [stream readPSDStringOrGetFourByteID:&enumTag];
+            
+            FMAssert(textGriddingTagTypeStringWhatever == NULL);
+            
+            FMAssert(enumTag == 'None'); // OK, what other text gridding types are there?
+                     
+        }
+        else if ([key isEqualToString:@"bounds"] || [key isEqualToString:@"boundingBox"]) {
+            
+            uint32 boundsKey = [stream readInt32];
+            
+            if (boundsKey == 'Objc') {
+                [self skipDescriptorFromStream:stream];
+            }
+            else if (boundsKey == 4) { // WTF REALLY?
+                
+                for (int boundsIndex = 0; boundsIndex < 4; boundsIndex++) {
+                    
+                    
+                    uint32 boundsTag = 0;
+                    NSString *boundsJunk = [stream readPSDStringOrGetFourByteID:&boundsTag];
+                    FMAssert(!boundsJunk); // when is this ever the case?
+                    
+                    uint32 boundsTypeTag = [stream readInt32];
+                    FMAssert(boundsTypeTag == 'UntF'); // Unit float
+                    
+                    /*Units the following value is in. One of the following:
+                     '#Ang' = angle: base degrees
+                     '#Rsl' = density: base per inch
+                     '#Rlt' = distance: base 72ppi
+                     '#Nne' = none: coerced.
+                     '#Prc'= percent: unit value
+                     '#Pxl' = pixels: tagged unit value
+                     
+                    Actual value (double)
+                     
+                     */
+                    
+                    uint32 unitType = [stream readInt32];
+                    NSLog(@"unitType: %@", NSFileTypeForHFSTypeCode(unitType));
+                    
+                    // #Pnt isn't documented, but I'm going to assume it means "point".
+                    
+                    FMAssert(unitType == '#Pnt');
+                    
+                    double location = [stream readDouble64];
+                    debug(@"location: %f", location);
+                    //
+                    
+                    
+                }
+                
+            }
+            else {
+                NSLog(@"Unknown boundsKey: %@ / %u", NSFileTypeForHFSTypeCode(boundsKey), boundsKey);
+                FMAssert(NO);
+            }
+            
+            
+        }
         else {
-            NSLog(@"Unknown type: %@", NSFileTypeForHFSTypeCode(type));
+            NSLog(@"Unknown type: %@ / '%@'", NSFileTypeForHFSTypeCode(type), key);
             exit(0);
             return NO;
         }

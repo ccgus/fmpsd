@@ -233,8 +233,6 @@
 - (NSString*)readPSDStringOrGetFourByteID:(uint32*)outId {
     sint32 size = [self readInt32];
     
-    debug(@"size: %ld", size);
-    
     if (size <= 0) {
         *outId = [self readInt32];
         return nil;
@@ -242,7 +240,7 @@
     
     char *c = malloc(sizeof(char) * (size + 1));
     [self readChars:c maxLength:size];
-    c[size+1] = 0;
+    c[size] = 0;
     
     NSString *s = [NSString stringWithFormat:@"%s", c];
     
@@ -260,16 +258,31 @@
         size = 4;
     }
     
+    return [self readPSDStringOfLength:size];
+}
+
+- (NSString*)readPSDStringOfLength:(sint32)size {
+    
     char *c = malloc(sizeof(char) * (size + 1));
+    
+    
+    #pragma message "FIXME: OH GOD OH GOD GOTTA DO SOMETHING LIKE THIS HERE"
+    This line is purposefully left to to not compile, so that Gus will fix this right away the next time he works on it.
+    /*
+    while ((read = [self readChars:c maxLength:buffSize]) > 0) {
+        [data appendBytes:c length:read];
+    }
+    */
+    
+    
     [self readChars:c maxLength:size];
-    c[size+1] = 0;
+    c[size] = 0;
     
     NSString *s = [NSString stringWithFormat:@"%s", c];
     
     free(c);
     
     return s;
-    
 }
 
 
@@ -283,7 +296,7 @@
     
     char *c = malloc(sizeof(char) * (size + 1));
     [self readChars:c maxLength:size];
-    c[size+1] = 0;
+    c[size] = 0;
     
     NSString *s = [NSString stringWithFormat:@"%s", c];
     

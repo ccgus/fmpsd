@@ -648,8 +648,6 @@
                 debug(@"t.tx: %f", t.tx);
                 debug(@"t.ty: %f", t.ty);
                 
-                //[stream skipLength:6*8]; // this is the tranform.
-                
                 uint16 textVersion = [stream readInt16];
                 [stream readInt32]; // descriptorVersion
                 
@@ -660,9 +658,36 @@
                 
                 [self setTextDescriptor:[FMPSDDescriptor descriptorWithStream:stream psd:_psd]];
                 
+                debug(@"Done reading the text descriptor at location: %ld", [stream location]);
+                
+                NSString *betterBeTextIndex = [stream readPSDString];
+                
+                FMAssert([betterBeTextIndex isEqualToString:@"TextIndex"]);
+                
+                uint32 longTag = [stream readInt32];
+                
+                FMAssert(longTag == 'long');
+                
+                uint64 stringLength = [stream readInt64];
+                
+                NSString *engineDataTag = [stream readPSDStringOfLength:stringLength];
+                
+                FMAssert([engineDataTag isEqualToString:@"EngineData"]);
+                
+                uint32 tdtaTag = [stream readInt32];
+                
+                FMAssert(tdtaTag == 'tdta');
+                
+                NSString *rtf = [stream readPSDString];
+                
+                debug(@"rtf: '%@'", rtf);
+                
                 long currentLoc = [stream location];
                 long delta = (textStartLocation + sigSize) - currentLoc;
-                [stream skipLength:delta];
+                
+                FMAssert(delta == 0);
+                
+                //[stream skipLength:delta];
                 
                 // the rest is the fancy rich text, which I'm not handling just yet.
                 
