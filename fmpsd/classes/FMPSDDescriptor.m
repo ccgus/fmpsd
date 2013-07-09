@@ -160,19 +160,9 @@
         debug(@"%d key: '%@'", i, key);
         debug(@"type: %@", NSFileTypeForHFSTypeCode(type));
         
-        /*
-        if (type == 'TEXT') {
-            NSString *s = [stream readPSDString16];
-            debug(@"s: '%@'", s);
-            if (s) {
-                [_attributes setObject:stream forKey:key];
-            }
-        }
-        else
-            */if (type == 'Txt ') {
+        if (type == 'Txt ') {
             
             uint32 textTag = [stream readInt32];
-            debug(@"textTag: %@", NSFileTypeForHFSTypeCode(textTag));
             FMAssert(textTag == 'TEXT');
             
             NSString *layerText = [stream readPSDString16];
@@ -309,6 +299,65 @@
             else {
                 NSLog(@"Unknown boundsKey: %@ / %u", NSFileTypeForHFSTypeCode(boundsKey), boundsKey);
                 FMAssert(NO);
+            }
+            
+            
+        }
+        
+        else if ([key isEqualToString:@"warpStyle"] || [key isEqualToString:@"warpRotate"]) {
+            
+            uint32 enumTag = [stream readInt32];
+            FMAssert(enumTag == 'enum');
+            
+            uint32 junkIntKey = 0;
+            NSString *junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey]; // Ornt for warpRotate - "warpStyle" for warpStyle.
+            
+            junkIntKey = 0;
+            junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey];
+            
+            (void)junkStringKey; // warpNone?
+            
+        }
+        else if ([key isEqualToString:@"warpValue"] || [key isEqualToString:@"warpPerspective"] || [key isEqualToString:@"warpPerspectiveOther"]) {
+            
+            uint32 enumTag = [stream readInt32];
+            FMAssert(enumTag == 'doub');
+            
+            double val = [stream readDouble64];
+            
+            debug(@"%@: %f", key, val);
+            
+            /*
+            uint32 junkIntKey = 0;
+            NSString *junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey];
+            
+            FMAssert([junkStringKey isEqualToString:@"warpStyle"]);
+            
+            junkIntKey = 0;
+            junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey];
+            
+            (void)junkStringKey; // warpNone?
+            */
+        }
+        else if ([key length]) {
+            
+            debug(@"guessing for %@", key);
+            
+            uint32 tag = [stream readInt32];
+            if (tag == 'bool') {
+                [stream readInt8];
+            }
+            else if (tag == 'long') {
+                [stream readInt32];
+            }
+            else if (tag == 'tdta') {
+                
+                uint32 size = [stream readInt32];
+                [stream skipLength:size];
+            }
+            else {
+                debug(@"uknown tag: %@", NSFileTypeForHFSTypeCode(tag));
+                return NO;
             }
             
             

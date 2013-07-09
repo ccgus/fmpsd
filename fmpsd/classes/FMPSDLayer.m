@@ -642,13 +642,6 @@
                 t.tx = [stream readDouble64];
                 t.ty = [stream readDouble64];
                 
-                debug(@"t.a: %f", t.a);
-                debug(@"t.b: %f", t.b);
-                debug(@"t.c: %f", t.c);
-                debug(@"t.d: %f", t.d);
-                debug(@"t.tx: %f", t.tx);
-                debug(@"t.ty: %f", t.ty);
-                
                 uint16 textVersion = [stream readInt16];
                 [stream readInt32]; // descriptorVersion
                 
@@ -689,12 +682,30 @@
                 
                 debug(@"[stream location]: %ld", [stream location]);
                 
+                uint16 warpVersion = [stream readInt16];
+                FMAssert(warpVersion == 1); // ( = 1 for Photoshop 6.0)
+                
+                uint32 descriptorVersion = [stream readInt32];
+                FMAssert(descriptorVersion == 16); // Descriptor version ( = 16 for Photoshop 6.0)
+                
+                
+                //uint32 descriptorLength = [stream readInt32];
+                //[stream skipLength:descriptorLength];
+                
+                
+                [FMPSDDescriptor descriptorWithStream:stream psd:_psd];
+                
+                
+                
                 long currentLoc = [stream location];
                 long delta = (textStartLocation + sigSize) - currentLoc;
                 
-                debug(@"delta: %ld", delta);
                 
+                // skip the rest.
                 [stream skipLength:delta];
+                
+                [self setIsText:YES];
+                
             }
             else {
                 [stream skipLength:sigSize];

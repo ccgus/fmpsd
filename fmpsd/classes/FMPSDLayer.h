@@ -56,6 +56,7 @@
 @property (assign) sint32 width;
 @property (assign) sint32 height;
 @property (assign) BOOL isGroup;
+@property (assign) BOOL isText;
 @property (retain) NSMutableArray *layers;
 @property (assign) uint32 dividerType;
 @property (weak) FMPSDLayer *parent;
