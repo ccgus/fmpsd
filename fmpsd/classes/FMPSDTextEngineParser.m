@@ -85,6 +85,34 @@
     return ret;
 }
 
+- (NSString*)scanNextWord {
+    
+    [self scanTillNextRealChar];
+    NSInteger startLoc = _loc, endLoc = 0;
+    while (_loc < _len) {
+        
+        const char c = _base[_loc];
+        _loc++;
+        
+        if (c == ' ' || c == '\r' || c == '\n' || c == '\t') {
+            endLoc = _loc - 1;
+            break;
+        }
+    }
+    
+    if (endLoc <= startLoc) {
+        FMAssert(NO);
+        return nil;
+    }
+    
+    
+    uint8 *startS =_base + startLoc;
+    
+    NSString *ret = [[NSString alloc] initWithBytes:startS length:endLoc-startLoc encoding:NSUTF8StringEncoding];
+    
+    return ret;
+}
+
 - (NSString*)scanToNextTag {
     
     NSInteger startTagLoc = 0;
@@ -216,28 +244,71 @@
 
 - (NSArray*)parseArrayWithName:(NSString*)arrayName {
     
+    debug(@"arrayName: '%@'", arrayName);
+    
     NSMutableArray *ret = [NSMutableArray array];
+    NSMutableDictionary *currentDict = [NSMutableDictionary dictionary];
     
     char c = [self nextChar];
     
     FMAssert(c == '[');
     
-    [self scanToDoubleLessThan];
+    [self dumpTill:_loc];
+    NSString *nextWord = [self scanNextWord];
+    FMAssert([nextWord isEqualToString:@"<<"]);
     
     
-    NSString *nextTag = [self scanToNextTag];
     
-    while (nextTag) {
+    nextWord = [self scanNextWord];
+    while (nextWord && (![nextWord isEqualToString:@"]"])) {
+        debug(@"nextWord: '%@'", nextWord);
         
-        id o = [self parseTag:nextTag];
-        
-        if (o) {
-            [ret addObject:o];
+        if ([nextWord isEqualToString:@">>"]) {
+            
+            if ([currentDict count]) {
+                [ret addObject:currentDict];
+            }
+            
+            currentDict = [NSMutableDictionary dictionary];
+            
+            NSString *s = [self scanNextWord];
+            if ([s isEqualToString:@"]"]) {
+                break;
+            }
+            
+            if ([s isEqualToString:@"<<"]) {
+                // continue on.
+                nextWord = [self scanNextWord];
+            }
+            
         }
+        
+        FMAssert([nextWord hasPrefix:@"/"]);
+        
+        char nextRealChar = [self peekToNextRealChar];
+        
+        id value = nil;
+        
+        if (nextRealChar == '<') {
+            value = [self parseDictionaryWithName:nextWord];
+        }
+        else if ([nextWord hasSuffix:@"Array"] && nextRealChar == '[') {
+            value = [self parseArrayWithName:nextWord];
+        }
+        else {
+            value = [self scanSingleLineWithTag:nextWord];
+        }
+        
+        if (value) {
+            [currentDict setObject:value forKey:[nextWord substringFromIndex:1]];
+        }
+        else {
+            debug(@"nextWord has no value: ('%@')", nextWord);
+        }
+        
+        nextWord = [self scanNextWord];
     }
     
-    [self scanToDoubleGreaterThan];
-    [self scanToChar:']'];
     
     return ret;
 }
@@ -262,19 +333,83 @@
     printf("\n");
 }
 
+- (NSString*)scanSingleLineWithTag:(NSString*)tag {
+    
+    if ([tag isEqualToString:@"/Text"]) {
+        return [self parseTextTag];
+    }
+    else if ([tag isEqualToString:@"/Name"]) {
+        return [self parseTextTag];
+    }
+    
+    NSString *s = [[self scanToEndOfLine] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    
+    return s;
+}
+
 - (NSDictionary*)parseDictionaryWithName:(NSString*)dictName {
     
     NSMutableDictionary *ret = [NSMutableDictionary dictionary];
     
-    
     // dicts start out with a << on their own line, and end with a >>?
-    [self scanToDoubleLessThan];
+    
+    NSString *startB = [self scanNextWord];
+    FMAssert([startB isEqualToString:@"<<"]);
+    
+    NSString *key = [self scanNextWord];
+    while (key && (![key isEqualToString:@">>"])) {
+        debug(@"key: '%@'", key);
+        
+        [self dumpTill:_loc];
+        FMAssert([key hasPrefix:@"/"]);
+        
+        char nextRealChar = [self peekToNextRealChar];
+        
+        id value = nil;
+        
+        if (nextRealChar == '<') {
+            value = [self parseDictionaryWithName:key];
+        }
+        else if ([key hasSuffix:@"/RunArray"] && nextRealChar == '[') {
+            value = [self parseArrayWithName:key];
+        }
+        else if ([key hasSuffix:@"/Children"] && nextRealChar == '[') {
+            value = [self parseArrayWithName:key];
+        }
+        else {
+            value = [self scanSingleLineWithTag:key];
+        }
+        
+        if (value) {
+            [ret setObject:value forKey:[key substringFromIndex:1]];
+        }
+        else {
+            debug(@"key has no value: ('%@')", key);
+        }
+        
+        key = [self scanNextWord];
+    }
+    
+    debug(@"ret: '%@'", ret);
+    
+    return ret;
+    /*
+    exit(0);
+    
+    [self scanTillNextRealChar];
+    
+    [self dumpTill:_loc];
     
     char c = [self nextChar];
+    FMAssert(c == '<');
+    c = [self nextChar];
+    FMAssert(c == '<');
     
-    debug(@"c: %d", c);
+    [self scanTillNextRealChar];
     
-    while ((c != '>' || c != '/') && _loc < _len) {
+    c = [self nextChar];
+    
+    while ((c != '>') && _loc < _len) {
         
         // we're done with the dict.
         if (c == '>') {
@@ -288,18 +423,25 @@
             continue;
         }
         
-        if (c != '/') {
-            debug(@"_loc: %ld", _loc);
-            [self dumpTill:_loc];
-            debug(@"ret: %@", ret);
-        }
-        
-        FMAssert(c == '/');
-        _loc--;
         
         NSString *workingTag = [self scanToNextTag];
         
+        char nextChar = [self peekToNextRealChar];
+        
         debug(@"workingTag: %@", workingTag);
+        debug(@"nextChar: %c", nextChar);
+        
+        if (nextChar == '<') {
+            NSDictionary *d = [self parseDictionaryWithName:workingTag];
+            if (d) {
+                [ret setObject:d forKey:workingTag];
+            }
+        }
+        
+        debug(@"ret: '%@'", ret);
+        
+        exit(0);
+        
         
         id o = nil;
         
@@ -321,7 +463,39 @@
     
     
     return ret;
+    */
+}
+
+- (char)peekToNextRealChar {
     
+    NSInteger currentLoc = _loc;
+    
+    while (currentLoc < _len) {
+        
+        char c = _base[currentLoc++];
+        
+        if (!(c == '\n' || c == '\r' || c == '\t')) {
+            return c;
+        }
+    }
+    
+    return -1;
+}
+
+- (void)scanTillNextRealChar {
+    
+    while (_loc < _len) {
+        
+        char c = _base[_loc++];
+        
+        if (!(c == '\n' || c == '\r' || c == '\t')) {
+            _loc--;
+            return;
+        }
+    }
+    
+    NSLog(@"Fell off the end in scanTillNextRealChar");
+    FMAssert(NO);
 }
 
 - (void)parseData:(NSData*)engineData {
@@ -332,18 +506,18 @@
     
     _base = (uint8 *)[engineData bytes];
     
-    FMAssert(_base[_loc] == '\n');
-    _loc++;
-    FMAssert(_base[_loc] == '\n');
-    _loc++;
     
-    NSString *firstTag = [self scanToNextTag];
+    NSString *start = [self scanNextWord];
     
-    FMAssert([firstTag isEqualToString:@"EngineDict"]);
+    FMAssert([start isEqualToString:@"<<"]);
+    
+    NSString *firstTag = [self scanNextWord];
+    
+    FMAssert([firstTag isEqualToString:@"/EngineDict"]);
     
     NSDictionary *d = [self parseDictionaryWithName:firstTag];
     
-    debug(@"d: %@", d);
+    //debug(@"d: %@", d);
     
     exit(0);
 }
