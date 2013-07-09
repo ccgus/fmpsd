@@ -679,13 +679,13 @@
                 
                 FMAssert(tdtaTag == 'tdta');
                 
-                uint32 rtfLength = [stream readInt32];
-                NSData *rtfData = [stream readDataOfLength:rtfLength];
+                uint32 textPropertiesLength = [stream readInt32];
+                NSData *textPropertiesData = [stream readDataOfLength:textPropertiesLength];
                 
                 FMPSDTextEngineParser *parser = [FMPSDTextEngineParser new];
-                [parser parseData:rtfData];
+                [self setTextProperties:[parser parseData:textPropertiesData]];
                 
-                FMAssert(rtfLength == [rtfData length]);
+                FMAssert(textPropertiesLength == [textPropertiesData length]);
                 
                 debug(@"[stream location]: %ld", [stream location]);
                 

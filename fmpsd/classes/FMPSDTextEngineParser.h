@@ -12,6 +12,6 @@
     
 }
 
-- (void)parseData:(NSData*)engineData;
+- (NSDictionary*)parseData:(NSData*)engineData;
 
 @end

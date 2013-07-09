@@ -64,6 +64,7 @@
 @property (assign) uint8 opacity;
 @property (assign) BOOL printDebugInfo;
 @property (assign) uint32 blendMode;
+@property (retain) NSDictionary *textProperties;
 
 
 + (id)layerWithStream:(FMPSDStream*)stream psd:(FMPSD*)psd error:(NSError**)err;
