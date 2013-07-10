@@ -223,6 +223,8 @@
             uint32 junkIntKey = 0;
             NSString *junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey];
             
+            #pragma message "FIXME: testSPDGruberGraphicOpen fails here."
+            
             FMAssert(junkIntKey == 'Annt'); // ok, what other types might this be?
             
             // we don't do anything with this value right now - (antiAliasSharp(the 4 char key is null of course)|'Anno'(None)|'AnCr'(crisp)|'AnSt'(strong)|'AnSm'(smooth))
@@ -364,7 +366,8 @@
         }
         else {
             NSLog(@"Unknown type: %@ / '%@'", NSFileTypeForHFSTypeCode(type), key);
-            exit(0);
+            #pragma message "FIXME: testPSDCrasherPop fails here."
+            FMAssert(NO);
             return NO;
         }
     }
