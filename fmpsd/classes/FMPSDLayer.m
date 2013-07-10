@@ -652,56 +652,18 @@
                 
                 [self setTextDescriptor:[FMPSDDescriptor descriptorWithStream:stream psd:_psd]];
                 
-                debug(@"Done reading the text descriptor at location: %ld", [stream location]);
-                
-                NSString *betterBeTextIndex = [stream readPSDString];
-                
-                FMAssert([betterBeTextIndex isEqualToString:@"TextIndex"]);
-                
-                uint32 longTag = [stream readInt32];
-                
-                FMAssert(longTag == 'long');
-                
-                uint64 stringLength = [stream readInt64];
-                
-                NSString *engineDataTag = [stream readPSDStringOfLength:(uint32)stringLength];
-                
-                FMAssert([engineDataTag isEqualToString:@"EngineData"]);
-                
-                uint32 tdtaTag = [stream readInt32];
-                
-                FMAssert(tdtaTag == 'tdta');
-                
-                uint32 textPropertiesLength = [stream readInt32];
-                NSData *textPropertiesData = [stream readDataOfLength:textPropertiesLength];
-                
-                FMPSDTextEngineParser *parser = [FMPSDTextEngineParser new];
-                [self setTextProperties:[parser parseData:textPropertiesData]];
-                
-                FMAssert(textPropertiesLength == [textPropertiesData length]);
-                
-                debug(@"[stream location]: %ld", [stream location]);
-                
                 uint16 warpVersion = [stream readInt16];
-                FMAssert(warpVersion == 1); // ( = 1 for Photoshop 6.0)
+                FMAssert(warpVersion == 1);
                 
                 uint32 descriptorVersion = [stream readInt32];
-                FMAssert(descriptorVersion == 16); // Descriptor version ( = 16 for Photoshop 6.0)
-                
-                
-                //uint32 descriptorLength = [stream readInt32];
-                //[stream skipLength:descriptorLength];
-                
+                FMAssert(descriptorVersion == 16);
                 
                 [FMPSDDescriptor descriptorWithStream:stream psd:_psd];
-                
-                
                 
                 long currentLoc = [stream location];
                 long delta = (textStartLocation + sigSize) - currentLoc;
                 
-                
-                // skip the rest.
+                // supposidly we've got 24 bytes left for left, top, right, bottom - but that's bulshit.  There's nothing here but padding.
                 [stream skipLength:delta];
                 
                 [self setIsText:YES];

@@ -8,6 +8,7 @@
 
 #import "FMPSDDescriptor.h"
 #import "FMPSD.h"
+#import "FMPSDTextEngineParser.h"
 
 @interface FMPSDDescriptor()
 - (BOOL)readStream:(FMPSDStream*)stream;
@@ -88,20 +89,6 @@
     debug(@"enumValue: %@", NSFileTypeForHFSTypeCode(enumValue));
 }
 
-- (void)skipDescriptorFromStream:(FMPSDStream*)stream {
-    
-    uint32 size = [stream readInt32];
-    
-    if (size == 1) {
-        size++;
-        debug(@"ARE YOU FUCKING SERIOUS?  WHY WHY WHY?");
-    }
-    
-    [stream skipLength:size];
-    
-    debug(@"after reading bounds, we are now at offset %ld", [stream location]);
-}
-
 
 - (BOOL)readStream:(FMPSDStream*)stream {
     
@@ -113,18 +100,12 @@
     //uint32 nameLen = [stream readInt32] * 2;
     //[stream skipLength:nameLen];
     
-    uint32 classId;
-    NSString *classIdString = [stream readPSDStringOrGetFourByteID:&classId];
-    uint32 itemsCount = [stream readInt32];
+    _classIdString = [stream readPSDStringOrGetFourByteID:&_classId];
+    _itemCount = [stream readInt32];
     
-    debug(@"classIdString: '%@'", classIdString);
-    debug(@"classId: '%@'", NSFileTypeForHFSTypeCode(classId));
-    debug(@"itemsCount: %d", itemsCount);
-    
-    if (classId == 'TxLr') {
-        //debug(@"HOLY HELL IT'S A TEXT LAYER");
-        // ...
-    }
+    debug(@"classIdString: '%@'", _classIdString);
+    debug(@"classId: '%@'", NSFileTypeForHFSTypeCode(_classId));
+    debug(@"itemsCount: %d", _itemCount);
     
     /*
      00005370  00 00 00 00 54 78 4c 72  00 00 00 06 00 00 00 00  |....TxLr........|
@@ -148,7 +129,7 @@
      00005490  09 3c 3c 0a 09 09 09 2f  44 65 66 61 75 6c 74 52  |.<<..../DefaultR|
      */
      
-    for (uint32 i = 0; i < itemsCount; i++) {
+    for (uint32 i = 0; i < _itemCount; i++) {
         
         debug(@"reading key/type #%d at offset %ld", i+1, [stream location]);
         
@@ -157,7 +138,7 @@
         NSString *key = [stream readPSDStringOrGetFourByteID:&type];
         
         #pragma unused(key)
-        debug(@"%d key: '%@'", i, key);
+        debug(@"key: '%@' (%p)", key, key);
         debug(@"type: %@", NSFileTypeForHFSTypeCode(type));
         
         if (type == 'Txt ') {
@@ -193,10 +174,7 @@
             [stream skipLength:size];
         }
         else if (type == 'Objc') {
-            uint32 size = [stream readInt32];
-            [stream skipLength:size];
-            
-            debug(@"size: %uld", size);
+            [FMPSDDescriptor descriptorWithStream:stream psd:_psd];
         }
         else if (type == 'Ornt') {
             
@@ -223,10 +201,6 @@
             uint32 junkIntKey = 0;
             NSString *junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey];
             
-            #pragma message "FIXME: testSPDGruberGraphicOpen fails here."
-            
-            FMAssert(junkIntKey == 'Annt'); // ok, what other types might this be?
-            
             // we don't do anything with this value right now - (antiAliasSharp(the 4 char key is null of course)|'Anno'(None)|'AnCr'(crisp)|'AnSt'(strong)|'AnSm'(smooth))
             junkIntKey = 0;
             junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey];
@@ -234,6 +208,9 @@
             debug(@"junkIntKey: %@", NSFileTypeForHFSTypeCode(junkIntKey));
             debug(@"junkStringKey: '%@'", junkStringKey);
             
+        }
+        else if (type == 'null') {
+            [stream readInt32];
         }
         else if ([key isEqualToString:@"textGridding"]) {
             FMAssert(!type);
@@ -256,9 +233,16 @@
             
             uint32 boundsKey = [stream readInt32];
             
-            if (boundsKey == 'Objc') {
-                [self skipDescriptorFromStream:stream];
-            }
+            FMAssert(boundsKey == 'Objc');
+            
+            FMPSDDescriptor *d = [FMPSDDescriptor descriptorWithStream:stream psd:_psd];
+            
+            [[self attributes] setObject:d forKey:key];
+            
+                
+                
+            
+            /*
             else if (boundsKey == 4) { // WTF REALLY?
                 
                 for (int boundsIndex = 0; boundsIndex < 4; boundsIndex++) {
@@ -271,38 +255,17 @@
                     uint32 boundsTypeTag = [stream readInt32];
                     FMAssert(boundsTypeTag == 'UntF'); // Unit float
                     
-                    /*Units the following value is in. One of the following:
-                     '#Ang' = angle: base degrees
-                     '#Rsl' = density: base per inch
-                     '#Rlt' = distance: base 72ppi
-                     '#Nne' = none: coerced.
-                     '#Prc'= percent: unit value
-                     '#Pxl' = pixels: tagged unit value
-                     
-                    Actual value (double)
-                     
-                     */
-                    
-                    uint32 unitType = [stream readInt32];
-                    NSLog(@"unitType: %@", NSFileTypeForHFSTypeCode(unitType));
-                    
-                    // #Pnt isn't documented, but I'm going to assume it means "point".
-                    
-                    FMAssert(unitType == '#Pnt');
-                    
-                    double location = [stream readDouble64];
-                    debug(@"location: %f", location);
                     //
                     
                     
                 }
-                
             }
             else {
                 NSLog(@"Unknown boundsKey: %@ / %u", NSFileTypeForHFSTypeCode(boundsKey), boundsKey);
                 FMAssert(NO);
             }
-            
+             
+             */
             
         }
         
@@ -341,28 +304,85 @@
             (void)junkStringKey; // warpNone?
             */
         }
-        else if ([key length]) {
+        else if ([key isEqualToString:@"EngineData"]) {
             
-            debug(@"guessing for %@", key);
+            uint32 tdtaTag = [stream readInt32];
+            FMAssert(tdtaTag == 'tdta');
+            
+            uint32 textPropertiesLength = [stream readInt32];
+            NSData *textPropertiesData = [stream readDataOfLength:textPropertiesLength];
+            
+            FMPSDTextEngineParser *parser = [FMPSDTextEngineParser new];
+            [parser parseData:textPropertiesData];
+            
+            [[self attributes] setObject:parser forKey:key];
+            
+        }
+        /*
+        else if ([key isEqualToString:@"TextIndex"]) {
+            uint32 longTag = [stream readInt32];
+            FMAssert(longTag == 'long');
+        }*/
+        else if ([key length] || type > 0) {
+            
+            NSLog(@"guessing for %@ / '%@' offset %ld", NSFileTypeForHFSTypeCode(type), key, [stream location]);
+            NSString *attKey = key ? key : NSFileTypeForHFSTypeCode(type);
             
             uint32 tag = [stream readInt32];
             if (tag == 'bool') {
-                [stream readInt8];
+                [[self attributes] setObject:@([stream readInt8]) forKey:attKey];
+                
+            }
+            else if (tag == 'doub') {
+                [[self attributes] setObject:@([stream readDouble64]) forKey:attKey];
             }
             else if (tag == 'long') {
-                [stream readInt32];
+                [[self attributes] setObject:@([stream readInt32]) forKey:attKey];
             }
             else if (tag == 'tdta') {
-                
                 uint32 size = [stream readInt32];
                 [stream skipLength:size];
             }
+            else if (tag == 'Objc') {
+                
+                FMPSDDescriptor *d = [FMPSDDescriptor descriptorWithStream:stream psd:_psd];
+                
+                [[self attributes] setObject:d forKey:attKey];
+                
+            }
+            else if (tag == 'UntF') {
+                
+                
+                /*Units the following value is in. One of the following:
+                 '#Ang' = angle: base degrees
+                 '#Rsl' = density: base per inch
+                 '#Rlt' = distance: base 72ppi
+                 '#Nne' = none: coerced.
+                 '#Prc'= percent: unit value
+                 '#Pxl' = pixels: tagged unit value
+                 
+                 Actual value (double)
+                 
+                 */
+                 
+                 uint32 unitType = [stream readInt32];
+                 NSLog(@"unitType: %@", NSFileTypeForHFSTypeCode(unitType));
+                 
+                 // #Pnt isn't documented, but I'm going to assume it means "point".
+                 
+                 FMAssert(unitType == '#Pnt');
+                 
+                 double location = [stream readDouble64];
+                 debug(@"location: %f", location);
+                
+                [[self attributes] setObject:@(location) forKey:attKey];
+                
+            }
             else {
                 debug(@"uknown tag: %@", NSFileTypeForHFSTypeCode(tag));
+                FMAssert(NO);
                 return NO;
             }
-            
-            
         }
         else {
             NSLog(@"Unknown type: %@ / '%@'", NSFileTypeForHFSTypeCode(type), key);

@@ -12,6 +12,8 @@
     
 }
 
-- (NSDictionary*)parseData:(NSData*)engineData;
+@property (strong) NSDictionary *parsedProperties;
+
+- (void)parseData:(NSData*)engineData;
 
 @end

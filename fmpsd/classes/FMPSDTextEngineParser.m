@@ -433,7 +433,7 @@
     FMAssert(NO);
 }
 
-- (NSDictionary*)parseData:(NSData*)engineData {
+- (void)parseData:(NSData*)engineData {
     _engineData = engineData;
     
     _len = [engineData length];
@@ -444,7 +444,7 @@
     
     NSDictionary *d = [self parseDictionaryWithName:@"Base"];
     
-    return d;
+    [self setParsedProperties:d];
 }
 
 @end
