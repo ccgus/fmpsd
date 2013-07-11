@@ -309,6 +309,8 @@
             uint32 tdtaTag = [stream readInt32];
             FMAssert(tdtaTag == 'tdta');
             
+            debug(@"[stream location]: %ld", [stream location]);
+            
             uint32 textPropertiesLength = [stream readInt32];
             NSData *textPropertiesData = [stream readDataOfLength:textPropertiesLength];
             

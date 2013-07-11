@@ -86,6 +86,11 @@
 
 - (NSString*)scanNextWord {
     
+    if (_loc >= _len) {
+        debug(@"running off the end! at %ld of %ld", _loc, _len);
+        return nil;
+    }
+    
     [self scanTillNextRealChar];
     NSInteger startLoc = _loc, endLoc = 0;
     while (_loc < _len) {
@@ -105,6 +110,7 @@
     }
     
     if (endLoc <= startLoc) {
+        [self dumpTill:_loc];
         FMAssert(NO);
         return nil;
     }
@@ -162,7 +168,7 @@
 - (NSString*)scanToEndOfLine {
     NSMutableString *ret = [NSMutableString string];
     char c = [self nextChar];
-    while (c != 0x0a) {
+    while (c != 0x0a && _loc < _len) {
         [ret appendFormat:@"%c", c];
         c = [self nextChar];
     }
@@ -339,6 +345,8 @@
 
 - (NSString*)scanSingleLineWithTag:(NSString*)tag {
     
+    debug(@"tag: '%@'", tag);
+    
     if ([tag isEqualToString:@"/Text"]) {
         return [self parseTextTag];
     }
@@ -366,9 +374,15 @@
     NSString *key = [self scanNextWord];
     while (key && (![key isEqualToString:@">>"])) {
         
+        debug(@"key: '%@' %ld", key, _loc);
+        
         FMAssert([key hasPrefix:@"/"]);
         
+        FMAssert(_loc < _len);
+        
         char nextRealChar = [self peekToNextRealChar];
+        
+        FMAssert(_loc < _len);
         
         id value = nil;
         
@@ -395,6 +409,7 @@
             debug(@"key has no value: ('%@')", key);
         }
         
+        
         key = [self scanNextWord];
     }
     
@@ -409,9 +424,13 @@
         
         char c = _base[currentLoc++];
         
-        if (!(c == '\n' || c == '\r' || c == '\t')) {
+        if (!(c == '\n' || c == '\r' || c == '\t' || c == ' ')) {
             return c;
         }
+    }
+    
+    if (currentLoc >= _len) {
+        debug(@"ran off the end in peekToNextRealChar");
     }
     
     return -1;
@@ -419,11 +438,14 @@
 
 - (void)scanTillNextRealChar {
     
+    debug(@"_loc: '%ld'", _loc);
+    
     while (_loc < _len) {
         
-        char c = _base[_loc++];
+        char c = _base[_loc];
+        _loc++;
         
-        if (!(c == '\n' || c == '\r' || c == '\t')) {
+        if (!(c == '\n' || c == '\r' || c == '\t' || c == ' ')) {
             _loc--;
             return;
         }
