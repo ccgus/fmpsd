@@ -178,8 +178,6 @@
 
 - (id)parseTag:(NSString*)tag {
     
-    debug(@"tag: %@", tag);
-    
     if ([tag isEqualToString:@"Editor"]) {
         return [self parseDictionaryWithName:tag];
     }
@@ -253,6 +251,12 @@
 }
 
 - (NSArray*)parseArrayWithName:(NSString*)arrayName {
+    
+    debug(@"arrayName: %@", arrayName);
+    
+    if ([arrayName isEqualToString:@"/StyleSheetData"]) {
+        
+    }
     
     NSMutableArray *ret = [NSMutableArray array];
     NSMutableDictionary *currentDict = [NSMutableDictionary dictionary];
@@ -345,8 +349,6 @@
 
 - (NSString*)scanSingleLineWithTag:(NSString*)tag {
     
-    debug(@"tag: '%@'", tag);
-    
     if ([tag isEqualToString:@"/Text"]) {
         return [self parseTextTag];
     }
@@ -373,8 +375,6 @@
     
     NSString *key = [self scanNextWord];
     while (key && (![key isEqualToString:@">>"])) {
-        
-        debug(@"key: '%@' %ld", key, _loc);
         
         FMAssert([key hasPrefix:@"/"]);
         
@@ -437,8 +437,6 @@
 }
 
 - (void)scanTillNextRealChar {
-    
-    debug(@"_loc: '%ld'", _loc);
     
     while (_loc < _len) {
         

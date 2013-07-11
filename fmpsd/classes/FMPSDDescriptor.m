@@ -92,20 +92,14 @@
 
 - (BOOL)readStream:(FMPSDStream*)stream {
     
-    NSString *t = [stream readPSDString16];
-    debug(@"[stream location]: %ld", [stream location]);
-    debug(@"t: '%@'", t);
     
     // http://www.adobe.com/devnet-apps/photoshop/fileformatashtml/PhotoshopFileFormats.htm#50577411_21585
-    //uint32 nameLen = [stream readInt32] * 2;
-    //[stream skipLength:nameLen];
+    
+    // what's this guy for anyway?
+    [stream readPSDString16];
     
     _classIdString = [stream readPSDStringOrGetFourByteID:&_classId];
     _itemCount = [stream readInt32];
-    
-    debug(@"classIdString: '%@'", _classIdString);
-    debug(@"classId: '%@'", NSFileTypeForHFSTypeCode(_classId));
-    debug(@"itemsCount: %d", _itemCount);
     
     /*
      00005370  00 00 00 00 54 78 4c 72  00 00 00 06 00 00 00 00  |....TxLr........|
@@ -136,10 +130,6 @@
         // Key: 4 bytes ( length) followed either by string or (if length is zero) 4-byte key
         uint32 type = 0;
         NSString *key = [stream readPSDStringOrGetFourByteID:&type];
-        
-        #pragma unused(key)
-        debug(@"key: '%@' (%p)", key, key);
-        debug(@"type: %@", NSFileTypeForHFSTypeCode(type));
         
         if (type == 'Txt ') {
             
@@ -388,7 +378,6 @@
         }
         else {
             NSLog(@"Unknown type: %@ / '%@'", NSFileTypeForHFSTypeCode(type), key);
-            #pragma message "FIXME: testPSDCrasherPop fails here."
             FMAssert(NO);
             return NO;
         }
