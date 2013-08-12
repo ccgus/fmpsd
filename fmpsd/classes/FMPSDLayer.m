@@ -979,6 +979,7 @@ void decodeRLE(char *src, int sindex, int slen, char *dst, int dindex) {
         
         FMPSDPixel *c = CGBitmapContextGetData(ctx);//[foo mutableBytes];
         
+        #pragma message "FIXME: you know, if we rework this we just just flood gcd with the height of our image, and let it sort out how best to break things up."
         size_t ops = 3;
         
         dispatch_queue_t queue = dispatch_get_global_queue(0, DISPATCH_QUEUE_PRIORITY_HIGH);
