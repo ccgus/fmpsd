@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AEB344A817BE3ECB00335650 /* FMPSDTextEngineParser.m in Sources */ = {isa = PBXBuildFile; fileRef = AEB344A717BE3ECB00335650 /* FMPSDTextEngineParser.m */; };
 		CC4381B3177251AF009D82C3 /* FMPSD.m in Sources */ = {isa = PBXBuildFile; fileRef = CC4381A8177251AF009D82C3 /* FMPSD.m */; };
 		CC4381B4177251AF009D82C3 /* FMPSDCIFilters.m in Sources */ = {isa = PBXBuildFile; fileRef = CC4381AA177251AF009D82C3 /* FMPSDCIFilters.m */; };
 		CC4381B5177251AF009D82C3 /* FMPSDDescriptor.m in Sources */ = {isa = PBXBuildFile; fileRef = CC4381AC177251AF009D82C3 /* FMPSDDescriptor.m */; };
@@ -34,6 +35,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		AEB344A617BE3ECB00335650 /* FMPSDTextEngineParser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FMPSDTextEngineParser.h; path = classes/FMPSDTextEngineParser.h; sourceTree = "<group>"; };
+		AEB344A717BE3ECB00335650 /* FMPSDTextEngineParser.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = FMPSDTextEngineParser.m; path = classes/FMPSDTextEngineParser.m; sourceTree = "<group>"; };
 		CC4381A7177251AF009D82C3 /* FMPSD.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FMPSD.h; path = classes/FMPSD.h; sourceTree = "<group>"; };
 		CC4381A8177251AF009D82C3 /* FMPSD.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = FMPSD.m; path = classes/FMPSD.m; sourceTree = "<group>"; };
 		CC4381A9177251AF009D82C3 /* FMPSDCIFilters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FMPSDCIFilters.h; path = classes/FMPSDCIFilters.h; sourceTree = "<group>"; };
@@ -111,6 +114,8 @@
 				CC4381B0177251AF009D82C3 /* FMPSDStream.m */,
 				CC4381B1177251AF009D82C3 /* FMPSDUtils.h */,
 				CC4381B2177251AF009D82C3 /* FMPSDUtils.m */,
+				AEB344A617BE3ECB00335650 /* FMPSDTextEngineParser.h */,
+				AEB344A717BE3ECB00335650 /* FMPSDTextEngineParser.m */,
 				CCF682FD17724EB800478D7A /* main.m */,
 				CCF6830117724EB800478D7A /* fmpsd.1 */,
 				CCF682FF17724EB800478D7A /* Supporting Files */,
@@ -184,6 +189,7 @@
 				CC4381B7177251AF009D82C3 /* FMPSDStream.m in Sources */,
 				CC4381B8177251AF009D82C3 /* FMPSDUtils.m in Sources */,
 				CCF682FE17724EB800478D7A /* main.m in Sources */,
+				AEB344A817BE3ECB00335650 /* FMPSDTextEngineParser.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
