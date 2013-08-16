@@ -7,6 +7,7 @@
 //
 
 #import "FMPSDTextEngineParser.h"
+#import "FMPSD.h"
 
 @interface FMPSDTextEngineParser ()
 @property (strong) NSData *engineData;
