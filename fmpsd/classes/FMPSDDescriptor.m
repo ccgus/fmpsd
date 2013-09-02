@@ -216,8 +216,8 @@
             
             FMAssert(textGriddingTagTypeStringWhatever == NULL);
             
-            FMAssert(enumTag == 'None'); // OK, what other text gridding types are there?
-                     
+            FMAssert(enumTag == 'None' || enumTag == 'Rnd '); // OK, what other text gridding types are there?
+			
         }
         else if ([key isEqualToString:@"bounds"] || [key isEqualToString:@"boundingBox"]) {
             
