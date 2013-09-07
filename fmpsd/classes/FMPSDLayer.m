@@ -332,14 +332,59 @@
     
     CGColorSpaceRelease(cs);
     
+    CGContextSetBlendMode(ctx, kCGBlendModeCopy);
     CGContextDrawImage(ctx, CGRectMake(0, 0, _width, _height), _image);
+    
     
     FMPSDPixel *c = CGBitmapContextGetData(ctx);
     
+    // let's unpremultiply this guy - but not if we're a composite!
+    if (!_isComposite) {
+
+        dispatch_queue_t queue = dispatch_get_global_queue(0, DISPATCH_QUEUE_PRIORITY_HIGH);
+        
+        dispatch_apply(_height, queue, ^(size_t row) {
+            
+            FMPSDPixel *p = &c[_width * row];
+            
+            sint32 x = 0;
+            while (x < _width) {
+                
+                if (p->a != 0) {
+                    
+                    p->r = (p->r * 255 + p->a / 2) / p->a;
+                    p->g = (p->g * 255 + p->a / 2) / p->a;
+                    p->b = (p->b * 255 + p->a / 2) / p->a;
+                }
+                
+                p++;
+                x++;
+            }
+        });
+        
+        
+//        My eternal thanks to whomever can figure out why this always crashes on me:
+//        vImage_Buffer buf;
+//        buf.data = &c;
+//        buf.width = _width;
+//        buf.height = _height;
+//        buf.rowBytes = CGBitmapContextGetBytesPerRow(ctx);
+//        
+//        vImage_Error err = vImageUnpremultiplyData_ARGB8888(&buf, &buf, 0);
+//        
+//        if (err != kvImageNoError) {
+//            NSLog(@"FMPSDLayer writeImageDataToStream: vImageUnpremultiplyData_ARGB8888 err: %ld", err);
+//        }
+        
+    }
+    
+    
+    
+    // split it up into planes
     size_t j = 0;
     while (j < len) {
         
-        FMPSDPixel p = _isComposite ? c[j] : FMPSDUnPremultiply(c[j]);
+        FMPSDPixel p = c[j];
         
         a[j] = p.a;
         r[j] = p.r;
@@ -970,55 +1015,41 @@ void decodeRLE(char *src, int sindex, int slen, char *dst, int dindex) {
     
     if (n) {
         
-        NSMutableData *foo = nil; //[NSMutableData dataWithLength:_width * _height * 4];
+        CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 8, _width * 4, [_psd colorSpace], kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host);
         
-        //CGColorSpaceRef cs = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
+        FMPSDPixel *c = CGBitmapContextGetData(ctx);
         
-        CGContextRef ctx = CGBitmapContextCreate([foo mutableBytes], _width, _height, 8, _width * 4, [_psd colorSpace], kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host);
-        
-        
-        FMPSDPixel *c = CGBitmapContextGetData(ctx);//[foo mutableBytes];
-        
-        #pragma message "FIXME: you know, if we rework this we just just flood gcd with the height of our image, and let it sort out how best to break things up."
-        size_t ops = 3;
-        
+        // OK, we're going to de-plane our image, and premultiply it as well.
         dispatch_queue_t queue = dispatch_get_global_queue(0, DISPATCH_QUEUE_PRIORITY_HIGH);
         
-        dispatch_apply(ops, queue, ^(size_t nby) { // Block implementation begins here
+        dispatch_apply(_height, queue, ^(size_t row) {
             
-            size_t loc = 0;
+            FMPSDPixel *p = &c[_width * row];
             
-            while (loc < n) {
+            sint32 x = 0;
+            while (x < _width) {
                 
+                size_t planeLoc = (row * _width) + x;
                 
-                FMPSDPixelCo ac = a[loc];
-                FMPSDPixelCo rc = r[loc];
-                FMPSDPixelCo gc = g[loc];
-                FMPSDPixelCo bc = b[loc];
+                p->a = a[planeLoc];
+                p->r = r[planeLoc];
+                p->g = g[planeLoc];
+                p->b = b[planeLoc];
                 
-                c[loc].a = ac;
-                
-                if (nby == 0) {
-                    c[loc].r = (rc * ac + 127) / 255;
-                }
-                else if (nby == 1) {
-                    c[loc].g = (gc * ac + 127) / 255;
-                }
-                else {
-                    c[loc].b = (bc * ac + 127) / 255;
+                if (p->a != 0) {
+                    p->r = (p->r * p->a + 127) / 255;
+                    p->g = (p->g * p->a + 127) / 255;
+                    p->b = (p->b * p->a + 127) / 255;
                 }
                 
-                loc++;
+                p++;
+                x++;
             }
-            
         });
         
-
         _image = CGBitmapContextCreateImage(ctx);
         
-        //CGColorSpaceRelease(cs);
         CGContextRelease(ctx);
-        
         
         if (m) {
             
@@ -1030,7 +1061,6 @@ void decodeRLE(char *src, int sindex, int slen, char *dst, int dindex) {
                         
             CGColorSpaceRelease(cs);
             CGContextRelease(alphaMask);
-            
             
         }
         

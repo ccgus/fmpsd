@@ -37,41 +37,17 @@ CGContextRef FMPSDCGBitmapContextCreate(NSSize size, CGColorSpaceRef cs);
 
 FMPSDPixel FMPSDPixelForPointInContext(CGContextRef context, NSPoint point);
 
-
-
 FOUNDATION_STATIC_INLINE FMPSDPixel FMPSDUnPremultiply(FMPSDPixel p) {
     
-    if (YES) {
-        
-        #pragma message "FIXME: get back on the vImage train here."
-        if (p.a == 0) {
-            return p;
-        }
-        
-        p.r = (p.r * 255 + p.a / 2) / p.a;
-        p.g = (p.g * 255 + p.a / 2) / p.a;
-        p.b = (p.b * 255 + p.a / 2) / p.a;
-        
+    if (p.a == 0) {
         return p;
     }
     
+    p.r = (p.r * 255 + p.a / 2) / p.a;
+    p.g = (p.g * 255 + p.a / 2) / p.a;
+    p.b = (p.b * 255 + p.a / 2) / p.a;
     
-    vImage_Buffer buf;
-    buf.data = &p;
-    buf.height = 1;
-    buf.width = 1;
-    buf.rowBytes = sizeof(FMPSDPixel);
-    
-    FMPSDPixel ret;
-    vImage_Buffer dest;
-    dest.data = &ret;
-    dest.height = 1;
-    dest.width = 1;
-    dest.rowBytes = sizeof(FMPSDPixel);
-    
-    vImageUnpremultiplyData_ARGB8888(&buf, &dest, 0);
-    
-    return ret;
+    return p;
 }
 
 FOUNDATION_STATIC_INLINE FMPSDPixel FMPSDPremultiply(FMPSDPixel p) {
