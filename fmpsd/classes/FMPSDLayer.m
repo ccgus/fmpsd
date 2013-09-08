@@ -350,12 +350,9 @@
             sint32 x = 0;
             while (x < _width) {
                 
-                if (p->a != 0) {
-                    
-                    p->r = (p->r * 255 + p->a / 2) / p->a;
-                    p->g = (p->g * 255 + p->a / 2) / p->a;
-                    p->b = (p->b * 255 + p->a / 2) / p->a;
-                }
+                p->r = (p->r * 255 + p->a / 2) / p->a;
+                p->g = (p->g * 255 + p->a / 2) / p->a;
+                p->b = (p->b * 255 + p->a / 2) / p->a;
                 
                 p++;
                 x++;
@@ -1019,6 +1016,7 @@ void decodeRLE(char *src, int sindex, int slen, char *dst, int dindex) {
         
         FMPSDPixel *c = CGBitmapContextGetData(ctx);
         
+        
         // OK, we're going to de-plane our image, and premultiply it as well.
         dispatch_queue_t queue = dispatch_get_global_queue(0, DISPATCH_QUEUE_PRIORITY_HIGH);
         
@@ -1026,21 +1024,22 @@ void decodeRLE(char *src, int sindex, int slen, char *dst, int dindex) {
             
             FMPSDPixel *p = &c[_width * row];
             
+            size_t planeStart = (row * _width);
             sint32 x = 0;
             while (x < _width) {
                 
-                size_t planeLoc = (row * _width) + x;
+                size_t planeLoc = planeStart + x;
                 
-                p->a = a[planeLoc];
-                p->r = r[planeLoc];
-                p->g = g[planeLoc];
-                p->b = b[planeLoc];
+                FMPSDPixelCo ac = a[planeLoc];
+                FMPSDPixelCo rc = r[planeLoc];
+                FMPSDPixelCo gc = g[planeLoc];
+                FMPSDPixelCo bc = b[planeLoc];
                 
-                if (p->a != 0) {
-                    p->r = (p->r * p->a + 127) / 255;
-                    p->g = (p->g * p->a + 127) / 255;
-                    p->b = (p->b * p->a + 127) / 255;
-                }
+                p->a = ac;
+                
+                p->r = (rc * ac + 127) / 255;
+                p->g = (gc * ac + 127) / 255;
+                p->b = (bc * ac + 127) / 255;
                 
                 p++;
                 x++;
