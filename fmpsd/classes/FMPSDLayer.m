@@ -341,39 +341,39 @@
     // let's unpremultiply this guy - but not if we're a composite!
     if (!_isComposite) {
 
-        dispatch_queue_t queue = dispatch_get_global_queue(0, DISPATCH_QUEUE_PRIORITY_HIGH);
-        
-        dispatch_apply(_height, queue, ^(size_t row) {
-            
-            FMPSDPixel *p = &c[_width * row];
-            
-            sint32 x = 0;
-            while (x < _width) {
-                
-                if (p->a != 0) {
-                    p->r = (p->r * 255 + p->a / 2) / p->a;
-                    p->g = (p->g * 255 + p->a / 2) / p->a;
-                    p->b = (p->b * 255 + p->a / 2) / p->a;
-                }
-                
-                p++;
-                x++;
-            }
-        });
-        
-        
-//        My eternal thanks to whomever can figure out why this always crashes on me:
-//        vImage_Buffer buf;
-//        buf.data = &c;
-//        buf.width = _width;
-//        buf.height = _height;
-//        buf.rowBytes = CGBitmapContextGetBytesPerRow(ctx);
+// FIXME: delete the old unpremultiply code.
+//        Old code.  I'm keeping it around for a moment, just incase vImageUnpremultiplyData_RGBA8888 doesn't work out for some reason.
+//        dispatch_queue_t queue = dispatch_get_global_queue(0, DISPATCH_QUEUE_PRIORITY_HIGH);
 //        
-//        vImage_Error err = vImageUnpremultiplyData_ARGB8888(&buf, &buf, 0);
-//        
-//        if (err != kvImageNoError) {
-//            NSLog(@"FMPSDLayer writeImageDataToStream: vImageUnpremultiplyData_ARGB8888 err: %ld", err);
-//        }
+//        dispatch_apply(_height, queue, ^(size_t row) {
+//            
+//            FMPSDPixel *p = &c[_width * row];
+//            
+//            sint32 x = 0;
+//            while (x < _width) {
+//                
+//                if (p->a != 0) {
+//                    p->r = (p->r * 255 + p->a / 2) / p->a;
+//                    p->g = (p->g * 255 + p->a / 2) / p->a;
+//                    p->b = (p->b * 255 + p->a / 2) / p->a;
+//                }
+//                
+//                p++;
+//                x++;
+//            }
+//        });
+        
+        vImage_Buffer buf;
+        buf.data = c;
+        buf.width = _width;
+        buf.height = _height;
+        buf.rowBytes = CGBitmapContextGetBytesPerRow(ctx);
+        
+        vImage_Error err = vImageUnpremultiplyData_RGBA8888(&buf, &buf, 0);
+        
+        if (err != kvImageNoError) {
+            NSLog(@"FMPSDLayer writeImageDataToStream: vImageUnpremultiplyData_RGBA8888 err: %ld", err);
+        }
         
     }
     
