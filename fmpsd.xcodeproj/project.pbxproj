@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		467BE765182B258D008D7645 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467BE764182B258D008D7645 /* Accelerate.framework */; };
 		AEB344A817BE3ECB00335650 /* FMPSDTextEngineParser.m in Sources */ = {isa = PBXBuildFile; fileRef = AEB344A717BE3ECB00335650 /* FMPSDTextEngineParser.m */; };
 		CC4381B3177251AF009D82C3 /* FMPSD.m in Sources */ = {isa = PBXBuildFile; fileRef = CC4381A8177251AF009D82C3 /* FMPSD.m */; };
 		CC4381B4177251AF009D82C3 /* FMPSDCIFilters.m in Sources */ = {isa = PBXBuildFile; fileRef = CC4381AA177251AF009D82C3 /* FMPSDCIFilters.m */; };
@@ -35,6 +36,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		467BE764182B258D008D7645 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		AEB344A617BE3ECB00335650 /* FMPSDTextEngineParser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FMPSDTextEngineParser.h; path = classes/FMPSDTextEngineParser.h; sourceTree = "<group>"; };
 		AEB344A717BE3ECB00335650 /* FMPSDTextEngineParser.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = FMPSDTextEngineParser.m; path = classes/FMPSDTextEngineParser.m; sourceTree = "<group>"; };
 		CC4381A7177251AF009D82C3 /* FMPSD.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FMPSD.h; path = classes/FMPSD.h; sourceTree = "<group>"; };
@@ -63,6 +65,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				467BE765182B258D008D7645 /* Accelerate.framework in Frameworks */,
 				CC4381BA17725E6D009D82C3 /* Cocoa.framework in Frameworks */,
 				CCF682FB17724EB800478D7A /* Foundation.framework in Frameworks */,
 				CC4381BC17725E78009D82C3 /* QuartzCore.framework in Frameworks */,
@@ -92,6 +95,7 @@
 		CCF682F917724EB800478D7A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				467BE764182B258D008D7645 /* Accelerate.framework */,
 				CC4381BB17725E78009D82C3 /* QuartzCore.framework */,
 				CC4381B917725E6C009D82C3 /* Cocoa.framework */,
 				CCF682FA17724EB800478D7A /* Foundation.framework */,
