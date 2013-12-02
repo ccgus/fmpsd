@@ -400,7 +400,7 @@
         
         m   = malloc(sizeof(char) * maskLen);
         cs  = CGColorSpaceCreateWithName(kCGColorSpaceGenericGray);
-        ctx = CGBitmapContextCreate(m, _maskWidth, _maskHeight, 8, _maskWidth, cs, kCGImageAlphaNone);
+        ctx = CGBitmapContextCreate(m, _maskWidth, _maskHeight, 8, _maskWidth, cs, (CGBitmapInfo)kCGImageAlphaNone);
         CGColorSpaceRelease(cs);
         CGContextDrawImage(ctx, CGRectMake(0, 0, _maskWidth, _maskHeight), _mask);
         CGContextRelease(ctx);
@@ -1056,7 +1056,7 @@ void decodeRLE(char *src, int sindex, int slen, char *dst, int dindex) {
             
             CGColorSpaceRef cs = CGColorSpaceCreateWithName(kCGColorSpaceGenericGray);
             
-            CGContextRef alphaMask = CGBitmapContextCreate(m, _maskWidth, _maskHeight, 8, _maskWidth, cs, kCGImageAlphaNone);
+            CGContextRef alphaMask = CGBitmapContextCreate(m, _maskWidth, _maskHeight, 8, _maskWidth, cs, (CGBitmapInfo)kCGImageAlphaNone);
             
             _mask = CGBitmapContextCreateImage(alphaMask);
                         
