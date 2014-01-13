@@ -428,6 +428,22 @@
     
     FMAssert(string);
     
+    
+    if (![string canBeConvertedToEncoding:NSMacOSRomanStringEncoding]) {
+        
+        NSData *what = [string dataUsingEncoding:NSMacOSRomanStringEncoding allowLossyConversion:YES];
+        
+        NSString *foo = [[NSString alloc] initWithData:what encoding:NSMacOSRomanStringEncoding];
+        
+        if (!foo) {
+            NSLog(@"Could not convert %@ to NSMacOSRomanStringEncoding", string);
+        }
+        
+        string = foo;
+        
+        FMAssert(string);
+    }
+    
     CFIndex len = CFStringGetLength((CFStringRef)string) + 1;
     
 	unsigned char *buffer = malloc(sizeof(unsigned char) * len);
@@ -437,6 +453,7 @@
     }
     else {
         NSLog(@"Could not write layer name!");
+        FMAssert(NO);
     }
     
     
