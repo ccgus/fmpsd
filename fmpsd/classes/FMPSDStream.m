@@ -268,6 +268,7 @@
     NSInteger read = [self readChars:c maxLength:size];
     c[size] = 0;
     
+    (void)read; // be quiet sa
     FMAssert(read == size);
     
     NSString *s = [NSString stringWithFormat:@"%s", c];
