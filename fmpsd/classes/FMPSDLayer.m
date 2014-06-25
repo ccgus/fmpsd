@@ -537,7 +537,7 @@
             _maskRight      = [stream readSInt32];
             
             
-            uint8 lcolor    = [stream readInt8];
+            _maskColor    = [stream readInt8];
             uint8 lflags    = [stream readInt8];
             
             if (lenOfMask == 20) {
@@ -550,7 +550,7 @@
             else {
                 
                 lflags = [stream readInt8]; // Real Flags. Same as Flags information above.
-                lcolor = [stream readInt8]; // Real user mask background. 0 or 255.
+                _maskColor = [stream readInt8]; // Real user mask background. 0 or 255.
                 
                 // and again. (Rectangle enclosing layer mask: Top, left, bottom, right.)
                 // I think this might be for a vector mask?
@@ -561,7 +561,6 @@
                 
             }
             
-            (void)lcolor;
             (void)lflags;
             
             _maskWidth      = _maskRight - _maskLeft;
@@ -1070,6 +1069,9 @@ void decodeRLE(char *src, int sindex, int slen, char *dst, int dindex) {
     return YES;
 }
 
+- (uint8)maskColor {
+    return _maskColor;
+}
 
 - (CGImageRef)mask {
     return _mask;

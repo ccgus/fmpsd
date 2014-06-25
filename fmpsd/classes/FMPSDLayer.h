@@ -28,6 +28,7 @@
     sint32 _maskRight2;
     sint32 _maskWidth2;
     sint32 _maskHeight2;
+    uint8  _maskColor;
     
     uint32 _layerId;
     uint32 _blendMode;
@@ -84,7 +85,7 @@
 - (void)setImage:(CGImageRef)anImage;
 - (CGImageRef)mask;
 - (void)setMask:(CGImageRef)value;
-
+- (uint8)maskColor;
 
 - (CIImage*)CIImageForComposite;
 
