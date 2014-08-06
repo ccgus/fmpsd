@@ -151,7 +151,13 @@ cleanup:
         
     	NSBeep();
         
-        system([[NSString stringWithFormat:@"/usr/local/bin/ksdiff %@ %@", [pathURL path], tempPath] UTF8String]);
+        @try {
+            system([[NSString stringWithFormat:@"/usr/local/bin/ksdiff %@ %@", [pathURL path], tempPath] UTF8String]);
+        }
+        @catch (NSException *exception) {
+            NSLog(@"%@", exception);
+        }
+        
         
         debug(@"Compare failure!");
         
