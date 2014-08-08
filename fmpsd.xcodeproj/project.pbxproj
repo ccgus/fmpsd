@@ -17,6 +17,7 @@
 		CC4381B8177251AF009D82C3 /* FMPSDUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = CC4381B2177251AF009D82C3 /* FMPSDUtils.m */; };
 		CC4381BA17725E6D009D82C3 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CC4381B917725E6C009D82C3 /* Cocoa.framework */; };
 		CC4381BC17725E78009D82C3 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CC4381BB17725E78009D82C3 /* QuartzCore.framework */; };
+		CC6097181995418E00B5B6C0 /* FMABR.m in Sources */ = {isa = PBXBuildFile; fileRef = CC6097171995418E00B5B6C0 /* FMABR.m */; };
 		CCF682FB17724EB800478D7A /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CCF682FA17724EB800478D7A /* Foundation.framework */; };
 		CCF682FE17724EB800478D7A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = CCF682FD17724EB800478D7A /* main.m */; };
 		CCF6830217724EB800478D7A /* fmpsd.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = CCF6830117724EB800478D7A /* fmpsd.1 */; };
@@ -53,6 +54,8 @@
 		CC4381B2177251AF009D82C3 /* FMPSDUtils.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = FMPSDUtils.m; path = classes/FMPSDUtils.m; sourceTree = "<group>"; };
 		CC4381B917725E6C009D82C3 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		CC4381BB17725E78009D82C3 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		CC6097161995418E00B5B6C0 /* FMABR.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FMABR.h; path = fmpsd/classes/FMABR.h; sourceTree = "<group>"; };
+		CC6097171995418E00B5B6C0 /* FMABR.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = FMABR.m; path = fmpsd/classes/FMABR.m; sourceTree = "<group>"; };
 		CCF682F717724EB800478D7A /* fmpsd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = fmpsd; sourceTree = BUILT_PRODUCTS_DIR; };
 		CCF682FA17724EB800478D7A /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		CCF682FD17724EB800478D7A /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
@@ -75,9 +78,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CC6097191995419700B5B6C0 /* abr */ = {
+			isa = PBXGroup;
+			children = (
+				CC6097161995418E00B5B6C0 /* FMABR.h */,
+				CC6097171995418E00B5B6C0 /* FMABR.m */,
+			);
+			name = abr;
+			sourceTree = "<group>";
+		};
 		CCF682EE17724EB800478D7A = {
 			isa = PBXGroup;
 			children = (
+				CC6097191995419700B5B6C0 /* abr */,
 				CCF682FC17724EB800478D7A /* fmpsd */,
 				CCF682F917724EB800478D7A /* Frameworks */,
 				CCF682F817724EB800478D7A /* Products */,
@@ -192,6 +205,7 @@
 				CC4381B6177251AF009D82C3 /* FMPSDLayer.m in Sources */,
 				CC4381B7177251AF009D82C3 /* FMPSDStream.m in Sources */,
 				CC4381B8177251AF009D82C3 /* FMPSDUtils.m in Sources */,
+				CC6097181995418E00B5B6C0 /* FMABR.m in Sources */,
 				CCF682FE17724EB800478D7A /* main.m in Sources */,
 				AEB344A817BE3ECB00335650 /* FMPSDTextEngineParser.m in Sources */,
 			);

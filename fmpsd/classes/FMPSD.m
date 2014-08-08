@@ -193,7 +193,7 @@ BOOL FMPSDPrintDebugInfo = NO;
     uint32 sig;
     if ((sig = [stream readInt32]) != '8BPS') {
         
-        NSString *s = [NSString stringWithFormat:@"%s:%d invalid start signature %@", __FUNCTION__, __LINE__, NSFileTypeForHFSTypeCode(sig)];
+        NSString *s = [NSString stringWithFormat:@"%s:%d invalid start signature '%@'", __FUNCTION__, __LINE__, NSFileTypeForHFSTypeCode(sig)];
         NSLog(@"%@", s);
         if (err) {
             *err = [NSError errorWithDomain:@"8BPS" code:1 userInfo:[NSDictionary dictionaryWithObject:s forKey:NSLocalizedDescriptionKey]];

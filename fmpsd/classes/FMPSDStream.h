@@ -43,6 +43,7 @@
 - (BOOL)hasLengthToRead:(NSUInteger)len;
 - (void)skipLength:(NSUInteger)len;
 - (long)location;
+- (void)seekToLocation:(long)newLocation;
 
 - (void)writeInt64:(uint64)value;
 - (void)writeInt32:(uint32)value;

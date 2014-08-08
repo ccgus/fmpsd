@@ -97,6 +97,15 @@ extern BOOL FMPSDPrintDebugInfo;
 
 @end
 
+#define FMPSDCheckSig(psd_sig_lookfor__, psd__sig__, psd__stream__, err__) { \
+psd__sig__ = [psd__stream__ readInt32];\
+if (!((psd__sig__ == psd_sig_lookfor__))) { \
+NSString *s = [NSString stringWithFormat:@"%s:%d invalid signature at loc %ld '%@', expected '%@'", __FUNCTION__, __LINE__, [psd__stream__ location],  NSFileTypeForHFSTypeCode(psd__sig__), NSFileTypeForHFSTypeCode(psd_sig_lookfor__)];\
+NSLog(@"%@", s);\
+if (err) { *err__ = [NSError errorWithDomain:@"8BIM" code:1 userInfo:[NSDictionary dictionaryWithObject:s forKey:NSLocalizedDescriptionKey]]; }\
+return NO;\
+}}\
+
 #define FMPSDCheck8BIMSig(psd__sig__, psd__stream__, err__) { \
 psd__sig__ = [psd__stream__ readInt32];\
 if (!((psd__sig__ == '8BIM') || (psd__sig__ == 'MeSa'))) { \

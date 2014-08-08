@@ -311,6 +311,10 @@
     return _location;
 }
 
+- (void)seekToLocation:(long)newLocation {
+    _location = newLocation;
+}
+
 - (NSMutableData*)readDataOfLength:(NSUInteger)len {
     
     if (len == 0) {
