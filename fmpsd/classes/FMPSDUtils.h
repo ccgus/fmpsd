@@ -70,3 +70,6 @@ FOUNDATION_STATIC_INLINE FMPSDPixel FMPSDPremultiply(FMPSDPixel p) {
     return ret;
     
 }
+
+
+void FMPSDDecodeRLE(char *src, int sindex, int slen, char *dst, int dindex);

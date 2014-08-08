@@ -15,3 +15,13 @@
 + (id)brushesWithContetsOfURL:(NSURL*)fileURL error:(NSError**)err printDebugInfo:(BOOL)debugInfo;
 
 @end
+
+
+@interface FMPSBrush : NSObject
+
+@property (assign) CGImageRef image;
+@property (assign) CGRect bounds;
+
+@end
+
+

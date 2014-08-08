@@ -738,41 +738,6 @@
     return success;
 }
 
-void decodeRLE(char *src, int sindex, int slen, char *dst, int dindex);
-void decodeRLE(char *src, int sindex, int slen, char *dst, int dindex) {
-    
-    int max = sindex + slen;
-    
-    while (sindex < max) {
-        char b = src[sindex++];
-        
-        int n = (int) b;
-        if (n < 0) {
-            n = 1 - n;
-            b = src[sindex++];
-            for (int i = 0; i < n; i++) {
-                dst[dindex++] = b;
-            }
-        }
-        else {
-            n = n + 1;
-            
-            // arraycopy(Object src, int srcPos, Object dest, int destPos, int length) 
-            // Copies an array from the specified source array, beginning at the specified position, to the specified position of the destination array
-            // System.arraycopy(src, sindex, dst, dindex, n);
-            //memcpy((void *)dst[dindex], (void *)src[sindex], n);
-            
-            for (int x = 0; x < n; x++) {
-                dst[dindex + x] = src[sindex + x];
-            }
-            
-            dindex += n;
-            sindex += n;
-        }
-    }
-}
-
-
 
 - (char*)parsePlaneCompressed:(FMPSDStream*)stream lineLengths:(uint16 *)lineLengths planeNum:(int)planeNum isMask:(BOOL)isMask {
     
@@ -808,7 +773,7 @@ void decodeRLE(char *src, int sindex, int slen, char *dst, int dindex) {
         
         [stream readChars:(char*)s maxLength:len];
         
-        decodeRLE(s, 0, len, b, pos);
+        FMPSDDecodeRLE(s, 0, len, b, pos);
         pos += width;
     }
     

@@ -9,6 +9,7 @@
 #import "FMABR.h"
 #import "FMPSD.h"
 #import "FMPSDStream.h"
+#import "FMPSDUtils.h"
 
 extern BOOL FMPSDPrintDebugInfo;
 
@@ -51,6 +52,14 @@ extern BOOL FMPSDPrintDebugInfo;
     
     
     return abr;
+}
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        [self setBrushes:[NSMutableArray array]];
+    }
+    return self;
 }
 
 - (BOOL)readDataAtURL:(NSURL*)url error:(NSError**)err {
@@ -146,8 +155,6 @@ extern BOOL FMPSDPrintDebugInfo;
     
     uint32 sectionLength = [stream readInt32];
     
-    debug(@"sectionLength: %d", sectionLength);
-    
     while (sectionLength % 4 != 0) {
         sectionLength++;
     }
@@ -202,6 +209,29 @@ extern BOOL FMPSDPrintDebugInfo;
     else {
         // better be rle.
         
+        uint16 *lineLengths  = [[NSMutableData dataWithLength:sizeof(uint16) * height] mutableBytes];
+        
+        for (size_t i = 0; i < height; i++) {
+            lineLengths[i] = [stream readInt16];
+        }
+        
+        
+        bitmap = [NSMutableData dataWithLength:sizeof(char) * (width * height)];
+        char *buffer = [bitmap mutableBytes];
+        char *source = [[NSMutableData dataWithLength:sizeof(char) * (width * 2)] mutableBytes];
+        
+        int pos = 0;
+        int lineIndex = 0;
+        for (uint32 i = 0; i < height; i++) {
+            uint16 len = lineLengths[lineIndex++];
+            
+            FMAssert(!(len > (width * 2)));
+            
+            [stream readChars:(char*)source maxLength:len];
+            
+            FMPSDDecodeRLE(source, 0, len, buffer, pos);
+            pos += width;
+        }
     }
     
     
@@ -211,7 +241,32 @@ extern BOOL FMPSDPrintDebugInfo;
         
         CGContextRef ctx = CGBitmapContextCreate([bitmap mutableBytes], width, height, 8, width, cs, (CGBitmapInfo)kCGImageAlphaNone);
         
-        TSViewCGContext(ctx);
+        if (!ctx) {
+            // FIXME: put an error in here.
+            NSLog(@"%s:%d", __FUNCTION__, __LINE__);
+            CGColorSpaceRelease(cs);
+            return NO;
+        }
+        
+        CGImageRef img = CGBitmapContextCreateImage(ctx);
+        
+        if (!img) {
+            // FIXME: put an error in here.
+            NSLog(@"%s:%d", __FUNCTION__, __LINE__);
+            CGColorSpaceRelease(cs);
+            CGContextRelease(ctx);
+            return NO;
+        }
+        
+        FMPSBrush *brush = [FMPSBrush new];
+        
+        [brush setImage:img];
+        
+        // FIXME: set the real x,y here.
+        [brush setBounds:CGRectMake(0, 0, width, height)];
+        
+        
+        [[self brushes] addObject:brush];
         
         CGColorSpaceRelease(cs);
         CGContextRelease(ctx);
@@ -222,6 +277,22 @@ extern BOOL FMPSDPrintDebugInfo;
     return YES;
     
 }
+
+
+
+@end
+
+
+@implementation FMPSBrush
+
+- (void)dealloc {
+    
+    if (_image) {
+        CGImageRelease(_image);
+    }
+    
+}
+
 
 
 
