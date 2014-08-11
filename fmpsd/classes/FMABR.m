@@ -36,8 +36,6 @@ extern BOOL FMPSDPrintDebugInfo;
     // defaults write com.flyingmeat.Acorn4 FMPSDDebug 1
     FMPSDPrintDebugInfo = debugInfo || [[NSUserDefaults standardUserDefaults] boolForKey:@"FMPSDDebug"];
     
-    debug(@"FMPSDPrintDebugInfo: %d", FMPSDPrintDebugInfo);
-    
     @try {
         
         if (![abr readDataAtURL:fileURL error:err]) {
@@ -62,6 +60,22 @@ extern BOOL FMPSDPrintDebugInfo;
     return self;
 }
 
+- (FMPSBrush*)brushWithId:(NSString*)brushID {
+    
+    
+    for (FMPSBrush *b in [self brushes]) {
+        
+        if ([[b sampledDataID] isEqualToString:brushID]) {
+            return b;
+        }
+        
+    }
+    
+    
+    return nil;
+    
+}
+
 - (BOOL)readDataAtURL:(NSURL*)url error:(NSError**)err {
     
     /*
@@ -70,12 +84,10 @@ extern BOOL FMPSDPrintDebugInfo;
     some sort of other version.  better be 2.
     "sample count"
     8BIM + samp
+    brush bitmap data for each brush
+    then brush settings?
     
     */
-    
-    
-    
-    
     
     FMPSDStream *stream = [FMPSDStream PSDStreamForReadingURL:url];
     
@@ -123,9 +135,8 @@ extern BOOL FMPSDPrintDebugInfo;
     while ([stream hasLengthToRead:0] && [stream location] < endPosition) {
         uint32 brushSize = [stream readInt32];
         
-        while (brushSize % 4 != 0) {
-            brushSize++;
-        }
+        // pad it to a multiple of 4
+        brushSize = (brushSize + (3)) & ~0x03;
         
         [stream skipLength:brushSize];
         _numberOfBrushes++;
@@ -146,6 +157,55 @@ extern BOOL FMPSDPrintDebugInfo;
         
     }
     
+    FMPSDDebug(@"Location after brush bitmap data: %ld", [stream location]);
+    
+    FMPSDCheckSig('8BIM', sig, stream, err);
+    FMPSDCheckSig('patt', sig, stream, err);
+    
+    uint32 patternInfoLength = [stream readInt32];
+    [stream skipLength:patternInfoLength];
+    
+    FMPSDCheckSig('8BIM', sig, stream, err);
+    FMPSDCheckSig('desc', sig, stream, err);
+    
+    [stream skipLength:42]; // beats the heck outa me, but it always seems to be 14 bytes till "null"
+    
+    
+    for (NSUInteger i = 0; i < [[self brushes] count]; i++) {
+        
+        FMPSDCheckSig('Objc', sig, stream, err);
+        
+        FMPSDDescriptor *d = [FMPSDDescriptor descriptorWithStream:stream psd:nil];
+        
+        FMPSDDescriptor *brsh = [[d attributes] objectForKey:@"'Brsh'"];
+        
+        NSString *brushSampleDataID = [[brsh attributes] objectForKey:@"sampledData"];
+        
+        if (!brushSampleDataID) {
+            NSLog(@"Missing brush sampledData id for brush %ld", i);
+            continue;
+        }
+        
+        FMPSBrush *brush = [self brushWithId:brushSampleDataID];
+        if (!brush) {
+            NSLog(@"Can't find brush with sample data id: %@", brushSampleDataID);
+            continue;
+        }
+        
+        [brush setDescriptor:d];
+        
+        
+        
+        if (brsh) {
+            [brush setName:[[brsh attributes] objectForKey:@"'Nm  '"]];
+        }
+        
+        
+        if ([[d attributes] objectForKey:@"'Nm  '"]) {
+            [brush setName:[[d attributes] objectForKey:@"'Nm  '"]];
+        }
+        
+    }
     
     
     return YES;
@@ -153,11 +213,11 @@ extern BOOL FMPSDPrintDebugInfo;
 
 - (BOOL)loadBrushInStream:(FMPSDStream*)stream error:(NSError**)err {
     
+    FMPSBrush *brush = [FMPSBrush new];
+    
     uint32 sectionLength = [stream readInt32];
     
-    while (sectionLength % 4 != 0) {
-        sectionLength++;
-    }
+    sectionLength = (sectionLength + (3)) & ~0x03;
     
     long brushEndLocation = [stream location] + sectionLength;
     
@@ -168,18 +228,30 @@ extern BOOL FMPSDPrintDebugInfo;
     
     FMPSDDebug(@"idString: %@", idString);
     
-    if (_versionVersion == 1) {
-        FMPSDDebug(@"Reading version version 1 brush?");
+    [brush setSampledDataID:idString];
+    
+    if (_versionVersion == 1) { // Elliptical, computed brush:
+        FMPSDDebug(@"reading computed brush");
+        
+        // this is all bs.
+        // 4 Miscellaneous. Ignored
+        // 2 Spacing: 0...999 where 0 = no spacing
+        // 2 Diameter: 1...999
+        // 2 Roundness: 0...100
+        // 2 Angle: -180...180
+        // 2 Hardness: 0...100
+        
         [stream skipLength:10];
     }
-    else {
-        FMPSDDebug(@"Reading version version %d brush", _versionVersion);
-        [stream skipLength:264];
+    else if (_versionVersion == 2) { // 2 = Sampled brush
+        
+        long endLocation = [stream location] + 264;
+        
+        [stream seekToLocation:endLocation];
     }
-    
-    debug(@"loc before things: %ld", [stream location]);
-    
-    // 1563 wide
+    else {
+        debug(@"uknown bursh type: %d", _versionVersion);
+    }
     
     size_t t = [stream readInt32];
     size_t l = [stream readInt32];
@@ -196,13 +268,13 @@ extern BOOL FMPSDPrintDebugInfo;
     size_t width  = r - l;
     size_t height = b - t;
     
-    size_t numberOfBytes = width * height;
+    size_t bitmapDataLength = width * height;
     
     NSMutableData *bitmap = nil;
     
     if (!compressionType) {
         
-        bitmap = [stream readDataOfLength:numberOfBytes];
+        bitmap = [stream readDataOfLength:bitmapDataLength];
         
         
     }
@@ -257,8 +329,6 @@ extern BOOL FMPSDPrintDebugInfo;
             CGContextRelease(ctx);
             return NO;
         }
-        
-        FMPSBrush *brush = [FMPSBrush new];
         
         [brush setImage:img];
         

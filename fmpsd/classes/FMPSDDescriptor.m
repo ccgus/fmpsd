@@ -125,7 +125,7 @@
      
     for (uint32 i = 0; i < _itemCount; i++) {
         
-        debug(@"reading key/type #%d at offset %ld", i+1, [stream location]);
+        //debug(@"reading key/type #%d at offset %ld", i+1, [stream location]);
         
         // Key: 4 bytes ( length) followed either by string or (if length is zero) 4-byte key
         uint32 type = 0;
@@ -317,13 +317,12 @@
         }*/
         else if ([key length] || type > 0) {
             
-            NSLog(@"guessing for %@ / '%@' offset %ld", NSFileTypeForHFSTypeCode(type), key, [stream location]);
+            //NSLog(@"guessing for %@ / '%@' offset %ld", NSFileTypeForHFSTypeCode(type), key, [stream location]);
             NSString *attKey = key ? key : NSFileTypeForHFSTypeCode(type);
             
             uint32 tag = [stream readInt32];
             if (tag == 'bool') {
                 [[self attributes] setObject:@([stream readInt8]) forKey:attKey];
-                
             }
             else if (tag == 'doub') {
                 [[self attributes] setObject:@([stream readDouble64]) forKey:attKey];
@@ -358,16 +357,27 @@
                  */
                  
                  uint32 unitType = [stream readInt32];
-                 NSLog(@"unitType: %@", NSFileTypeForHFSTypeCode(unitType));
+                 //NSLog(@"unitType: %@", NSFileTypeForHFSTypeCode(unitType));
                  
                  // #Pnt isn't documented, but I'm going to assume it means "point".
                  
-                 FMAssert(unitType == '#Pnt');
-                 
+                 FMAssert(unitType == '#Pnt' || unitType == '#Pxl' || unitType == '#Ang' || unitType == '#Prc');
+                
                  double location = [stream readDouble64];
-                 debug(@"location: %f", location);
                 
                 [[self attributes] setObject:@(location) forKey:attKey];
+                
+            }
+            else if (tag == 'TEXT') {
+                
+                long loc = [stream location];
+                NSString *text = [stream readPSDString16];
+                if (!text) {
+                    NSLog(@"Bad text at %ld", loc);
+                    return NO;
+                }
+                
+                [[self attributes] setObject:text forKey:attKey];
                 
             }
             else {
@@ -384,6 +394,10 @@
     }
     
     return YES;
+}
+
+- (NSString *)description {
+    return [NSString stringWithFormat:@"%@:\n%@", [super description], [self attributes]];
 }
 
 @end

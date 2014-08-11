@@ -8,6 +8,8 @@
 
 #import <Foundation/Foundation.h>
 
+@class FMPSDDescriptor;
+
 @interface FMABR : NSObject
 
 @property (strong) NSMutableArray *brushes;
@@ -21,6 +23,9 @@
 
 @property (assign) CGImageRef image;
 @property (assign) CGRect bounds;
+@property (strong) NSString *name;
+@property (strong) NSString *sampledDataID;
+@property (strong) FMPSDDescriptor *descriptor;
 
 @end
 
