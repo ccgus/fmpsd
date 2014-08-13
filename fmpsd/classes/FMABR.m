@@ -207,6 +207,7 @@ extern BOOL FMPSDPrintDebugInfo;
             [brush setDiameter:[[[brsh attributes] objectForKey:@"Dmtr"] doubleValue]];
             [brush setSpacing:[[[brsh attributes] objectForKey:@"Spcn"] doubleValue]];
             [brush setHardness:[[[brsh attributes] objectForKey:@"Hrdn"] doubleValue]];
+            [brush setRoundness:[[[brsh attributes] objectForKey:@"Rndn"] doubleValue]];
         }
         
         
@@ -281,10 +282,7 @@ extern BOOL FMPSDPrintDebugInfo;
     NSMutableData *bitmap = nil;
     
     if (!compressionType) {
-        
         bitmap = [stream readDataOfLength:bitmapDataLength];
-        
-        
     }
     else {
         // better be rle.
@@ -372,7 +370,7 @@ extern BOOL FMPSDPrintDebugInfo;
 - (NSString*)description {
     NSString *f = [super description];
     
-    f = [f stringByAppendingFormat:@" %@ %@ angle: %f spacing: %f", _name, _computed ? @"computed" : @"sampled", _angle, _spacing];
+    f = [f stringByAppendingFormat:@" %@ %@ diameter: %f angle: %f spacing: %f hardness: %f roundness: %f", _name, _computed ? @"computed" : @"sampled", _diameter, _angle, _spacing, _hardness, _roundness];
     
     return f;
 }
