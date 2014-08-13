@@ -188,6 +188,7 @@ extern BOOL FMPSDPrintDebugInfo;
         debug(@"d: '%@'", d);
         
         FMPSDDescriptor *brsh = [[d attributes] objectForKey:@"Brsh"];
+        FMPSDDescriptor *scatterDynamics = [[d attributes] objectForKey:@"scatterDynamics"];
         
         NSString *brushSampleDataID = [[brsh attributes] objectForKey:@"sampledData"];
         
@@ -209,6 +210,15 @@ extern BOOL FMPSDPrintDebugInfo;
             [brush setHardness:[[[brsh attributes] objectForKey:@"Hrdn"] doubleValue]];
             [brush setRoundness:[[[brsh attributes] objectForKey:@"Rndn"] doubleValue]];
         }
+        
+        if (scatterDynamics) {
+            
+            if ([[scatterDynamics attributes] objectForKey:@"jitter"]) {
+                [brush setScatterJitter:[[[scatterDynamics attributes] objectForKey:@"jitter"] doubleValue]];
+            }
+            
+        }
+        
         
         
         if ([[d attributes] objectForKey:@"Nm  "]) {

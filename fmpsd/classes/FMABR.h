@@ -31,6 +31,7 @@
 @property (assign) CGFloat diameter;
 @property (assign) CGFloat roundness;
 @property (assign) CGFloat hardness;
+@property (assign) CGFloat scatterJitter;
 @property (assign) BOOL computed;
 @end
 
