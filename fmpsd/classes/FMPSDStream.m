@@ -172,14 +172,13 @@
 
 - (double)readDouble64 {
     
-    unsigned char buffer[8];
-    double value = 0;
+    CFSwappedFloat64 sf;
     
-    if ([self read:buffer maxLength:8] == 8) {
-        value = (double)*buffer;
-    }
+    [self read:(uint8*)&sf.v maxLength:8];
     
-    return value;
+    double f = CFConvertDoubleSwappedToHost(sf);
+    
+    return f;
 }
 
 

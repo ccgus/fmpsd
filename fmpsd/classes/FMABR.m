@@ -62,6 +62,9 @@ extern BOOL FMPSDPrintDebugInfo;
 
 - (FMPSBrush*)brushWithId:(NSString*)brushID {
     
+    if (!brushID) {
+        return nil;
+    }
     
     for (FMPSBrush *b in [self brushes]) {
         
@@ -168,51 +171,48 @@ extern BOOL FMPSDPrintDebugInfo;
     FMPSDCheckSig('8BIM', sig, stream, err);
     FMPSDCheckSig('desc', sig, stream, err);
     
-    [stream skipLength:42]; // beats the heck outa me, but it always seems to be 14 bytes till "null"
+    [stream skipLength:30]; // beats the heck outa me
     
     
-    for (NSUInteger i = 0; i < [[self brushes] count]; i++) {
+    FMPSDCheckSig('Brsh', sig, stream, err);
+    FMPSDCheckSig('VlLs', sig, stream, err);
+    
+    uint32 brushInfoSectionCount = [stream readSInt32];
+    
+    for (NSUInteger i = 0; i < brushInfoSectionCount; i++) {
         
         FMPSDCheckSig('Objc', sig, stream, err);
         
         FMPSDDescriptor *d = [FMPSDDescriptor descriptorWithStream:stream psd:nil];
         
-        debug(@"[d classIdString]: %@", [d classIdString]);
+        debug(@"d: '%@'", d);
         
-        debug(@"d: %@", d);
-        
-        FMPSDDescriptor *brsh = [[d attributes] objectForKey:@"'Brsh'"];
+        FMPSDDescriptor *brsh = [[d attributes] objectForKey:@"Brsh"];
         
         NSString *brushSampleDataID = [[brsh attributes] objectForKey:@"sampledData"];
         
-        if (!brushSampleDataID) {
-            NSLog(@"Missing brush sampledData id for brush %ld", i);
-            continue;
-        }
-        
         FMPSBrush *brush = [self brushWithId:brushSampleDataID];
         if (!brush) {
-            NSLog(@"Can't find brush with sample data id: %@", brushSampleDataID);
-            continue;
+            brush = [FMPSBrush new];
+            [brush setComputed:YES];
+            [[self brushes] addObject:brush];
         }
         
         [brush setDescriptor:d];
         
-        
-        
         if (brsh) {
-            [brush setName:[[brsh attributes] objectForKey:@"'Nm  '"]];
+            [brush setName:[[brsh attributes] objectForKey:@"Nm  "]];
             
-            
-            [brush setAngle:[[[brsh attributes] objectForKey:@"'Angl'"] floatValue]];
-            
+            [brush setAngle:[[[brsh attributes] objectForKey:@"Angl"] doubleValue]];
+            [brush setDiameter:[[[brsh attributes] objectForKey:@"Dmtr"] doubleValue]];
+            [brush setSpacing:[[[brsh attributes] objectForKey:@"Spcn"] doubleValue]];
+            [brush setHardness:[[[brsh attributes] objectForKey:@"Hrdn"] doubleValue]];
         }
         
         
-        if ([[d attributes] objectForKey:@"'Nm  '"]) {
-            [brush setName:[[d attributes] objectForKey:@"'Nm  '"]];
+        if ([[d attributes] objectForKey:@"Nm  "]) {
+            [brush setName:[[d attributes] objectForKey:@"Nm  "]];
         }
-        
     }
     
     
@@ -314,7 +314,6 @@ extern BOOL FMPSDPrintDebugInfo;
         }
     }
     
-    
     if (bitmap) {
         
         CGColorSpaceRef cs = CGColorSpaceCreateWithName(kCGColorSpaceGenericGray);
@@ -356,8 +355,6 @@ extern BOOL FMPSDPrintDebugInfo;
     
 }
 
-
-
 @end
 
 
@@ -372,6 +369,12 @@ extern BOOL FMPSDPrintDebugInfo;
 }
 
 
-
+- (NSString*)description {
+    NSString *f = [super description];
+    
+    f = [f stringByAppendingFormat:@" %@ %@ angle: %f spacing: %f", _name, _computed ? @"computed" : @"sampled", _angle, _spacing];
+    
+    return f;
+}
 
 @end

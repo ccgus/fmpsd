@@ -73,3 +73,7 @@ FOUNDATION_STATIC_INLINE FMPSDPixel FMPSDPremultiply(FMPSDPixel p) {
 
 
 void FMPSDDecodeRLE(char *src, int sindex, int slen, char *dst, int dindex);
+
+NSString * FMPSDStringForHFSTypeCode(OSType hfsFileTypeCode);
+
+

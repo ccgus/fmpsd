@@ -27,6 +27,11 @@
 @property (strong) NSString *sampledDataID;
 @property (strong) FMPSDDescriptor *descriptor;
 @property (assign) CGFloat angle;
+@property (assign) CGFloat spacing;
+@property (assign) CGFloat diameter;
+@property (assign) CGFloat roundness;
+@property (assign) CGFloat hardness;
+@property (assign) BOOL computed;
 @end
 
 

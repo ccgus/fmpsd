@@ -623,7 +623,7 @@
                 debug(@"ffffffffffffffffffffffffffffffffffffffffffffffffffff");
             }
             
-            FMPSDDebug(@"NSFileTypeForHFSTypeCode(tag): %@:%d", NSFileTypeForHFSTypeCode(tag), sigSize);
+            FMPSDDebug(@"FMPSDStringForHFSTypeCode(tag): %@:%d", FMPSDStringForHFSTypeCode(tag), sigSize);
             
             if (tag == 'luni') { // layer name as unicode.
                 [stream skipLength:sigSize];
@@ -643,7 +643,7 @@
                     FMPSDCheck8BIMSig(sig, stream, err);
                     _blendMode = [stream readInt32];
                     
-                    //debug(@"xxxxxxxxx: %@", NSFileTypeForHFSTypeCode(_blendMode));
+                    //debug(@"xxxxxxxxx: %@", FMPSDStringForHFSTypeCode(_blendMode));
                     
                 }
                 /*
@@ -721,7 +721,7 @@
         if (_dividerType == FMPSDLayerTypeHidden) {
             /*
             debug(@"_blendMode: %d", _blendMode);
-            debug(@"NSFileTypeForHFSTypeCode: '%@'", NSFileTypeForHFSTypeCode(_blendMode));
+            debug(@"FMPSDStringForHFSTypeCode: '%@'", FMPSDStringForHFSTypeCode(_blendMode));
             
             debug(@"_opacity: %d", _opacity);
             debug(@"_visible: %d", _visible);

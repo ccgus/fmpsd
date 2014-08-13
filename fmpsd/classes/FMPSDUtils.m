@@ -264,5 +264,9 @@ void FMPSDDecodeRLE(char *src, int sindex, int slen, char *dst, int dindex) {
     }
 }
 
-
+NSString * FMPSDStringForHFSTypeCode(OSType hfsFileTypeCode) {
+    
+    return [NSFileTypeForHFSTypeCode(hfsFileTypeCode) substringWithRange:NSMakeRange(1, 4)];
+    
+}
 

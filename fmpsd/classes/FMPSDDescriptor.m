@@ -9,6 +9,7 @@
 #import "FMPSDDescriptor.h"
 #import "FMPSD.h"
 #import "FMPSDTextEngineParser.h"
+#import "FMPSDUtils.h"
 
 @interface FMPSDDescriptor()
 - (BOOL)readStream:(FMPSDStream*)stream;
@@ -69,14 +70,14 @@
     NSString *enumClassIDString   = [stream readPSDStringOrGetFourByteID:&enumClassID];
     
     debug(@"enumClassIDString: '%@'", enumClassIDString);
-    debug(@"enumClassID: %@", NSFileTypeForHFSTypeCode(enumClassID));
+    debug(@"enumClassID: %@", FMPSDStringForHFSTypeCode(enumClassID));
     
     // TypeID: 4 bytes (length), followed either by string or (if length is zero) 4-byte typeID
     uint32 enumTypeID;
     NSString *enumTypeIDString   = [stream readPSDStringOrGetFourByteID:&enumTypeID];
     
     debug(@"enumTypeIDString: '%@'", enumTypeIDString);
-    debug(@"enumTypeID: %@", NSFileTypeForHFSTypeCode(enumTypeID));
+    debug(@"enumTypeID: %@", FMPSDStringForHFSTypeCode(enumTypeID));
     
     // enum: 4 bytes (length), followed either by string or (if length is zero) 4-byte enum
     uint32 enumMarker = [stream readInt32];
@@ -86,7 +87,7 @@
     NSString *enumValueString   = [stream readPSDStringOrGetFourByteID:&enumValue];
     
     debug(@"enumValueString: '%@'", enumValueString);
-    debug(@"enumValue: %@", NSFileTypeForHFSTypeCode(enumValue));
+    debug(@"enumValue: %@", FMPSDStringForHFSTypeCode(enumValue));
 }
 
 
@@ -195,7 +196,7 @@
             junkIntKey = 0;
             junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey];
             
-            debug(@"junkIntKey: %@", NSFileTypeForHFSTypeCode(junkIntKey));
+            debug(@"junkIntKey: %@", FMPSDStringForHFSTypeCode(junkIntKey));
             debug(@"junkStringKey: '%@'", junkStringKey);
             
         }
@@ -251,7 +252,7 @@
                 }
             }
             else {
-                NSLog(@"Unknown boundsKey: %@ / %u", NSFileTypeForHFSTypeCode(boundsKey), boundsKey);
+                NSLog(@"Unknown boundsKey: %@ / %u", FMPSDStringForHFSTypeCode(boundsKey), boundsKey);
                 FMAssert(NO);
             }
              
@@ -317,8 +318,8 @@
         }*/
         else if ([key length] || type > 0) {
             
-            //NSLog(@"guessing for %@ / '%@' offset %ld", NSFileTypeForHFSTypeCode(type), key, [stream location]);
-            NSString *attKey = key ? key : NSFileTypeForHFSTypeCode(type);
+            //NSLog(@"guessing for %@ / '%@' offset %ld", FMPSDStringForHFSTypeCode(type), key, [stream location]);
+            NSString *attKey = key ? key : FMPSDStringForHFSTypeCode(type);
             
             uint32 tag = [stream readInt32];
             if (tag == 'bool') {
@@ -357,7 +358,7 @@
                  */
                  
                 uint32 unitType = [stream readInt32];
-                //NSLog(@"unitType: %@", NSFileTypeForHFSTypeCode(unitType));
+                //NSLog(@"unitType: %@", FMPSDStringForHFSTypeCode(unitType));
                  
                 // #Pnt isn't documented, but I'm going to assume it means "point".
                  
@@ -365,7 +366,7 @@
                 
                 double location = [stream readDouble64];
                 
-                debug(@"location: %f / %@ / %@", location, attKey, NSFileTypeForHFSTypeCode(unitType));
+                debug(@"location: %f / %@ / %@", location, attKey, FMPSDStringForHFSTypeCode(unitType));
                 
                 [[self attributes] setObject:@(location) forKey:attKey];
                 
@@ -383,13 +384,13 @@
                 
             }
             else {
-                debug(@"uknown tag: %@", NSFileTypeForHFSTypeCode(tag));
+                debug(@"uknown tag: %@", FMPSDStringForHFSTypeCode(tag));
                 FMAssert(NO);
                 return NO;
             }
         }
         else {
-            NSLog(@"Unknown type: %@ / '%@'", NSFileTypeForHFSTypeCode(type), key);
+            NSLog(@"Unknown type: %@ / '%@'", FMPSDStringForHFSTypeCode(type), key);
             FMAssert(NO);
             return NO;
         }
