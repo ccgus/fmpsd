@@ -26,7 +26,7 @@
 @property (strong) NSString *name;
 @property (strong) NSString *sampledDataID;
 @property (strong) FMPSDDescriptor *descriptor;
-
+@property (assign) CGFloat angle;
 @end
 
 

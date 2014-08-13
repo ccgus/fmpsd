@@ -177,6 +177,10 @@ extern BOOL FMPSDPrintDebugInfo;
         
         FMPSDDescriptor *d = [FMPSDDescriptor descriptorWithStream:stream psd:nil];
         
+        debug(@"[d classIdString]: %@", [d classIdString]);
+        
+        debug(@"d: %@", d);
+        
         FMPSDDescriptor *brsh = [[d attributes] objectForKey:@"'Brsh'"];
         
         NSString *brushSampleDataID = [[brsh attributes] objectForKey:@"sampledData"];
@@ -198,6 +202,10 @@ extern BOOL FMPSDPrintDebugInfo;
         
         if (brsh) {
             [brush setName:[[brsh attributes] objectForKey:@"'Nm  '"]];
+            
+            
+            [brush setAngle:[[[brsh attributes] objectForKey:@"'Angl'"] floatValue]];
+            
         }
         
         

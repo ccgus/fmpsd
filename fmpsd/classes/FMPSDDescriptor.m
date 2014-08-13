@@ -356,14 +356,16 @@
                  
                  */
                  
-                 uint32 unitType = [stream readInt32];
-                 //NSLog(@"unitType: %@", NSFileTypeForHFSTypeCode(unitType));
+                uint32 unitType = [stream readInt32];
+                //NSLog(@"unitType: %@", NSFileTypeForHFSTypeCode(unitType));
                  
-                 // #Pnt isn't documented, but I'm going to assume it means "point".
+                // #Pnt isn't documented, but I'm going to assume it means "point".
                  
-                 FMAssert(unitType == '#Pnt' || unitType == '#Pxl' || unitType == '#Ang' || unitType == '#Prc');
+                FMAssert(unitType == '#Pnt' || unitType == '#Pxl' || unitType == '#Ang' || unitType == '#Prc');
                 
-                 double location = [stream readDouble64];
+                double location = [stream readDouble64];
+                
+                debug(@"location: %f / %@ / %@", location, attKey, NSFileTypeForHFSTypeCode(unitType));
                 
                 [[self attributes] setObject:@(location) forKey:attKey];
                 
