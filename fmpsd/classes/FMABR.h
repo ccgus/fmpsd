@@ -32,6 +32,7 @@
 @property (assign) CGFloat roundness;
 @property (assign) CGFloat hardness;
 @property (assign) CGFloat scatterJitter;
+@property (assign) uint32 blendMode;
 @property (assign) BOOL computed;
 @end
 

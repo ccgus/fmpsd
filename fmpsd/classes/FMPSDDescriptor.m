@@ -383,8 +383,25 @@
                 [[self attributes] setObject:text forKey:attKey];
                 
             }
+            else if (tag == 'enum') {
+                
+                // blend mode is the only guy I'm aware fo here…
+                FMAssert([attKey isEqualToString:@"BlnM"]);
+                
+                [stream skipLength:4];
+                
+                uint32 blendModeTagAgain = [stream readInt32];
+                [stream skipLength:4];
+                
+                FMAssert(blendModeTagAgain == 'BlnM');
+                
+                uint32 blendMode = [stream readInt32];
+                
+                [[self attributes] setObject:FMPSDStringForHFSTypeCode(blendMode) forKey:attKey];
+                
+            }
             else {
-                debug(@"uknown tag: %@", FMPSDStringForHFSTypeCode(tag));
+                debug(@"uknown tag: '%@' attKey: '%@'", FMPSDStringForHFSTypeCode(tag), attKey);
                 FMAssert(NO);
                 return NO;
             }
