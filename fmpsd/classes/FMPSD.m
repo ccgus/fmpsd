@@ -9,6 +9,7 @@
 
 #import "FMPSD.h"
 #import "FMPSDStream.h"
+#import "FMPSDUtils.h"
 #import <QuartzCore/QuartzCore.h>
 
 BOOL FMPSDPrintDebugInfo = NO;
