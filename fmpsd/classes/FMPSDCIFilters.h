@@ -12,8 +12,7 @@
 #import <QuartzCore/QuartzCore.h>
 
 @interface FMPSDAlphaFilter : CIFilter {
-    CIImage *_inputImage;
-    NSNumber *_alpha;
+    
 }
 
 @property (retain) CIImage *inputImage;
