@@ -175,11 +175,13 @@
             
             uint32 junkIntKey = 0;
             NSString *junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey];
+            (void)junkStringKey; // shh, clang-sa, I know.
             
             FMAssert(junkIntKey == 'Ornt'); // ok, what other types might this be?
             
             junkIntKey = 0;
             junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey];
+            (void)junkStringKey; // shh, clang-sa, I know.
             
             FMAssert(junkIntKey == 'Hrzn'); // ok, what other types might this be?
             
@@ -191,6 +193,7 @@
             
             uint32 junkIntKey = 0;
             NSString *junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey];
+            (void)junkStringKey; // shh, clang-sa, I know.
             
             // we don't do anything with this value right now - (antiAliasSharp(the 4 char key is null of course)|'Anno'(None)|'AnCr'(crisp)|'AnSt'(strong)|'AnSm'(smooth))
             junkIntKey = 0;
@@ -267,6 +270,7 @@
             
             uint32 junkIntKey = 0;
             NSString *junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey]; // Ornt for warpRotate - "warpStyle" for warpStyle.
+            (void)junkStringKey; // shh, clang-sa, I know.
             
             junkIntKey = 0;
             junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey];

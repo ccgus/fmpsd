@@ -347,6 +347,8 @@ extern BOOL FMPSDPrintDebugInfo;
         
         [brush setImage:img];
         
+        CGImageRelease(img);
+        
         // FIXME: set the real x,y here.
         [brush setBounds:CGRectMake(0, 0, width, height)];
         
