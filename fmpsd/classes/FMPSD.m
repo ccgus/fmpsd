@@ -326,7 +326,7 @@ BOOL FMPSDPrintDebugInfo = NO;
                 }
                 
                 int idx = 0;
-                for (FMPSDLayer *layer in layers) {
+                for (FMPSDLayer *layer in layers) @autoreleasepool {
                     if (![layer readImageDataFromStream:stream lineLengths:nil needReadPlanInfo:YES error:err]) {
                         NSLog(@"Could not read data for layer #%d '%@'", idx, [layer layerName]);
                         return NO;

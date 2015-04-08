@@ -12,9 +12,6 @@ static CIKernel *FMPSDAlphaFilterKernel = nil;
 
 @implementation FMPSDAlphaFilter
 
-@synthesize alpha=_alpha;
-@synthesize inputImage=_inputImage;
-
 + (CIFilter *)filterWithName:(NSString *)name {
     return [[self alloc] init];
 }
