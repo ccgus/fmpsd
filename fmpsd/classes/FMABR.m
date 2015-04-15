@@ -378,6 +378,27 @@ extern BOOL FMPSDPrintDebugInfo;
     
 }
 
+- (void)setImage:(CGImageRef)newImage {
+    
+    
+    if (_image != newImage) {
+    
+        if (_image) {
+            CGImageRelease(_image);
+        }
+        
+        if (newImage) {
+            CGImageRetain(newImage);
+        }
+        
+        _image = newImage;
+    }
+}
+
+- (CGImageRef)image {
+    return _image;
+}
+
 
 - (NSString*)description {
     NSString *f = [super description];

@@ -19,9 +19,10 @@
 @end
 
 
-@interface FMPSBrush : NSObject
+@interface FMPSBrush : NSObject {
+    CGImageRef _image;
+}
 
-@property (assign) CGImageRef image;
 @property (assign) CGRect bounds;
 @property (strong) NSString *name;
 @property (strong) NSString *sampledDataID;
@@ -34,6 +35,10 @@
 @property (assign) CGFloat scatterJitter;
 @property (assign) uint32 blendMode;
 @property (assign) BOOL computed;
+
+- (void)setImage:(CGImageRef)image;
+- (CGImageRef)image;
+
 @end
 
 
