@@ -14,7 +14,7 @@
 
 @property (strong) NSMutableArray *brushes;
 
-+ (id)brushesWithContetsOfURL:(NSURL*)fileURL error:(NSError**)err printDebugInfo:(BOOL)debugInfo;
++ (id)brushesWithContetsOfURL:(NSURL*)fileURL error:(NSError *__autoreleasing *)err printDebugInfo:(BOOL)debugInfo;
 
 @end
 

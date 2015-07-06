@@ -15,7 +15,7 @@
 
 
 @interface FMPSDLayer()
-- (BOOL)readLayerInfo:(FMPSDStream*)stream error:(NSError**)err;
+- (BOOL)readLayerInfo:(FMPSDStream*)stream error:(NSError *__autoreleasing *)err;
 @end
 
 @implementation FMPSDLayer
@@ -47,7 +47,7 @@
     return ret;
 }
 
-+ (id)layerWithStream:(FMPSDStream*)stream psd:(FMPSD*)psd error:(NSError**)err {
++ (id)layerWithStream:(FMPSDStream*)stream psd:(FMPSD*)psd error:(NSError *__autoreleasing *)err {
     
     FMPSDLayer *ret = [[self alloc] init];
     
@@ -440,7 +440,7 @@
     }
 }
 
-- (BOOL)readLayerInfo:(FMPSDStream*)stream error:(NSError**)err {
+- (BOOL)readLayerInfo:(FMPSDStream*)stream error:(NSError *__autoreleasing *)err {
     uint32 sig;
     
     BOOL success    = YES;
@@ -782,7 +782,7 @@
     return b;
 }
 
-- (char*)readPlaneFromStream:(FMPSDStream*)stream lineLengths:(uint16 *)lineLengths needReadPlaneInfo:(BOOL)needReadPlaneInfo planeNum:(int)planeNum  error:(NSError**)err {
+- (char*)readPlaneFromStream:(FMPSDStream*)stream lineLengths:(uint16 *)lineLengths needReadPlaneInfo:(BOOL)needReadPlaneInfo planeNum:(int)planeNum  error:(NSError *__autoreleasing *)err {
     
     //BOOL rawImageData           = NO;
     BOOL rleEncoded             = NO;
@@ -822,9 +822,35 @@
         
             if (err) {
                 *err = [NSError errorWithDomain:@"com.flyingmeat.FMPSD" code:3 userInfo:[NSDictionary dictionaryWithObject:s forKey:NSLocalizedDescriptionKey]];
+                
+                /* scripting BS.  I pass along *err like this:
+                 #0	0x0000000100e6c57f in -[FMPSDLayer readPlaneFromStream:lineLengths:needReadPlaneInfo:planeNum:error:] at /Users/gus/Projects/fmpsd/fmpsd/classes/FMPSDLayer.m:824
+                 #1	0x0000000100e6dc61 in -[FMPSDLayer readImageDataFromStream:lineLengths:needReadPlanInfo:error:] at /Users/gus/Projects/fmpsd/fmpsd/classes/FMPSDLayer.m:913
+                 #2	0x00000001010402e9 in -[FMPSD readDataAtURL:error:] at /Users/gus/Projects/fmpsd/fmpsd/classes/FMPSD.m:330
+                 #3	0x000000010103b466 in +[FMPSD imageWithContetsOfURL:error:printDebugInfo:] at /Users/gus/Projects/fmpsd/fmpsd/classes/FMPSD.m:48
+                 #4	0x000000010103b8dd in +[FMPSD imageWithContetsOfURL:error:] at /Users/gus/Projects/fmpsd/fmpsd/classes/FMPSD.m:64
+                 #5	0x00000001004840e8 in -[TSDocument loadPSDDocument:fileURL:error:] at /Users/gus/Projects/acorn/src/TSDocument.m:2685
+                 #6	0x0000000100763aa2 in -[TSMiscDocument makeUntitledPSDDocumentFromData:ofType:error:] at /Users/gus/Projects/acorn/src/TSMiscDocument.m:264
+                 #7	0x00000001007618c5 in -[TSMiscDocument readFromData:ofType:error:] at /Users/gus/Projects/acorn/src/TSMiscDocument.m:193
+                 #8	0x00007fff8b718184 in -[NSDocument readFromFileWrapper:ofType:error:] ()
+                 #9	0x000000010075ce6a in -[TSMiscDocument readFromFileWrapper:ofType:error:] at /Users/gus/Projects/acorn/src/TSMiscDocument.m:46
+                 #10	0x00007fff8b717fec in -[NSDocument readFromURL:ofType:error:] ()
+                 #11	0x00007fff8b393b15 in -[NSDocument _initWithContentsOfURL:ofType:error:] ()
+                 #12	0x00007fff8b3939f5 in -[NSDocument initWithContentsOfURL:ofType:error:] ()
+                 #13	0x00007fff8b516278 in -[NSDocumentController makeDocumentWithContentsOfURL:ofType:error:] ()
+                 #14	0x00007fff8b758f76 in -[NSDocumentController(NSDeprecated) openDocumentWithContentsOfURL:display:error:] ()
+                 #15	0x00000001026d58bf in -[NSApplication(COSExtras) open:] at /Users/gus/Projects/coscript/src/framework/COSExtras.m:111
+                 
+                 And at some point it gets deallocated.  Which is no good.
+*/
+                
+                
+                CFRetain((__bridge CFTypeRef)*err);
+                
+                debug(@"err: '%@' %p", *err, err);
             }
                 
-            return NO;
+            return nil;
         }
         
         //rawImageData         = (encoding == 0);
@@ -887,7 +913,7 @@
     return _channelIds[row];
 }
 
-- (BOOL)readImageDataFromStream:(FMPSDStream*)stream lineLengths:(uint16 *)lineLengths needReadPlanInfo:(BOOL)needsPlaneInfo error:(NSError**)err {
+- (BOOL)readImageDataFromStream:(FMPSDStream*)stream lineLengths:(uint16 *)lineLengths needReadPlanInfo:(BOOL)needsPlaneInfo error:(NSError *__autoreleasing *)err {
     
     char* r = nil, *g = nil, *b = nil, *a = nil, *m = nil;
     
@@ -902,18 +928,30 @@
         if (channelId == -1) { // alpha
             FMPSDDebug(@"reading alpha");
             a = [self readPlaneFromStream:stream lineLengths:lineLengths needReadPlaneInfo:needsPlaneInfo planeNum:j error:err];
+            if (!a) {
+                return NO;
+            }
         }
         else if (channelId == 0) { // r
             FMPSDDebug(@"reading red");
             r = [self readPlaneFromStream:stream lineLengths:lineLengths needReadPlaneInfo:needsPlaneInfo planeNum:j error:err];
+            if (!r) {
+                return NO;
+            }
         }
         else if (channelId == 1) { // g
             FMPSDDebug(@"reading green");
             g = [self readPlaneFromStream:stream lineLengths:lineLengths needReadPlaneInfo:needsPlaneInfo planeNum:j error:err];
+            if (!g) {
+                return NO;
+            }
         }
         else if (channelId == 2) { // b
             FMPSDDebug(@"reading blue");
             b = [self readPlaneFromStream:stream lineLengths:lineLengths needReadPlaneInfo:needsPlaneInfo planeNum:j error:err];
+            if (!b) {
+                return NO;
+            }
         }
         else if (channelId == -2) { // m
             FMPSDDebug(@"reading mask");

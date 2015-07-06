@@ -81,8 +81,8 @@ extern BOOL FMPSDPrintDebugInfo;
 @property (retain) FMPSDLayer *compositeLayer;
 @property (retain) FMPSDLayer *baseLayerGroup;
 
-+ (id)imageWithContetsOfURL:(NSURL*)fileURL error:(NSError**)err;
-+ (id)imageWithContetsOfURL:(NSURL*)fileURL error:(NSError**)err printDebugInfo:(BOOL)debugInfo;
++ (id)imageWithContetsOfURL:(NSURL*)fileURL error:(NSError *__autoreleasing *)err;
++ (id)imageWithContetsOfURL:(NSURL*)fileURL error:(NSError *__autoreleasing *)err printDebugInfo:(BOOL)debugInfo;
 + (void)printDebugInfoForFileAtURL:(NSURL*)fileURL;
 
 - (uint16_t)version;

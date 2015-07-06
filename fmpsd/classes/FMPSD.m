@@ -19,7 +19,7 @@ BOOL FMPSDPrintDebugInfo = NO;
 @end
 
 @interface FMPSD ()
-- (BOOL)readDataAtURL:(NSURL*)url error:(NSError**)err;
+- (BOOL)readDataAtURL:(NSURL*)url error:(NSError *__autoreleasing *)err;
 @end
 
 
@@ -32,7 +32,7 @@ BOOL FMPSDPrintDebugInfo = NO;
 @synthesize colorMode=_colorMode;
 @synthesize compositeLayer=_compositeLayer;
 
-+ (id)imageWithContetsOfURL:(NSURL*)fileURL error:(NSError**)err printDebugInfo:(BOOL)debugInfo {
++ (id)imageWithContetsOfURL:(NSURL*)fileURL error:(NSError *__autoreleasing *)err printDebugInfo:(BOOL)debugInfo {
     
     if (![[[NSFileManager alloc] init] fileExistsAtPath:[fileURL path]]) {
         return nil;
@@ -60,7 +60,7 @@ BOOL FMPSDPrintDebugInfo = NO;
     
 }
 
-+ (id)imageWithContetsOfURL:(NSURL*)fileURL error:(NSError**)err {
++ (id)imageWithContetsOfURL:(NSURL*)fileURL error:(NSError *__autoreleasing *)err {
     return [self imageWithContetsOfURL:fileURL error:err printDebugInfo:NO];
 }
 
@@ -171,7 +171,7 @@ BOOL FMPSDPrintDebugInfo = NO;
     CGImageRelease(imageRef);
 }
 
-- (BOOL)readDataAtURL:(NSURL*)url error:(NSError**)err {
+- (BOOL)readDataAtURL:(NSURL*)url error:(NSError *__autoreleasing *)err {
     
     FMPSDDebug(@"Opening stream at %@", [url path]);
     

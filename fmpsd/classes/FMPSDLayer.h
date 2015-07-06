@@ -69,11 +69,11 @@
 @property (retain) NSDictionary *textProperties;
 
 
-+ (id)layerWithStream:(FMPSDStream*)stream psd:(FMPSD*)psd error:(NSError**)err;
++ (id)layerWithStream:(FMPSDStream*)stream psd:(FMPSD*)psd error:(NSError *__autoreleasing *)err;
 + (id)layerWithSize:(NSSize)s psd:(FMPSD*)psd;
 + (id)baseLayer;
 
-- (BOOL)readImageDataFromStream:(FMPSDStream*)stream lineLengths:(uint16 *)lineLengths needReadPlanInfo:(BOOL)needsPlaneInfo error:(NSError**)err;
+- (BOOL)readImageDataFromStream:(FMPSDStream*)stream lineLengths:(uint16 *)lineLengths needReadPlanInfo:(BOOL)needsPlaneInfo error:(NSError *__autoreleasing *)err;
 - (void)writeLayerInfoToStream:(FMPSDStream*)stream;
 - (void)writeImageDataToStream:(FMPSDStream*)stream;
 

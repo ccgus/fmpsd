@@ -24,7 +24,7 @@ extern BOOL FMPSDPrintDebugInfo;
 
 @implementation FMABR
 
-+ (id)brushesWithContetsOfURL:(NSURL*)fileURL error:(NSError**)err printDebugInfo:(BOOL)debugInfo {
++ (id)brushesWithContetsOfURL:(NSURL*)fileURL error:(NSError *__autoreleasing *)err printDebugInfo:(BOOL)debugInfo {
     
     if (![[[NSFileManager alloc] init] fileExistsAtPath:[fileURL path]]) {
         return nil;
@@ -79,7 +79,7 @@ extern BOOL FMPSDPrintDebugInfo;
     
 }
 
-- (BOOL)readDataAtURL:(NSURL*)url error:(NSError**)err {
+- (BOOL)readDataAtURL:(NSURL*)url error:(NSError *__autoreleasing *)err {
     
     /*
     
@@ -230,7 +230,7 @@ extern BOOL FMPSDPrintDebugInfo;
     return YES;
 }
 
-- (BOOL)loadBrushInStream:(FMPSDStream*)stream error:(NSError**)err {
+- (BOOL)loadBrushInStream:(FMPSDStream*)stream error:(NSError *__autoreleasing *)err {
     
     FMPSBrush *brush = [FMPSBrush new];
     
