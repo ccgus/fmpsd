@@ -929,6 +929,7 @@
             FMPSDDebug(@"reading alpha");
             a = [self readPlaneFromStream:stream lineLengths:lineLengths needReadPlaneInfo:needsPlaneInfo planeNum:j error:err];
             if (!a) {
+                debug(@"reading alpha failed.");
                 return NO;
             }
         }
@@ -936,6 +937,7 @@
             FMPSDDebug(@"reading red");
             r = [self readPlaneFromStream:stream lineLengths:lineLengths needReadPlaneInfo:needsPlaneInfo planeNum:j error:err];
             if (!r) {
+                debug(@"reading red failed.");
                 return NO;
             }
         }
@@ -943,6 +945,7 @@
             FMPSDDebug(@"reading green");
             g = [self readPlaneFromStream:stream lineLengths:lineLengths needReadPlaneInfo:needsPlaneInfo planeNum:j error:err];
             if (!g) {
+                debug(@"reading green failed.");
                 return NO;
             }
         }
@@ -950,6 +953,7 @@
             FMPSDDebug(@"reading blue");
             b = [self readPlaneFromStream:stream lineLengths:lineLengths needReadPlaneInfo:needsPlaneInfo planeNum:j error:err];
             if (!b) {
+                debug(@"reading blue failed.");
                 return NO;
             }
         }
