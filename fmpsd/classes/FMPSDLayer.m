@@ -152,7 +152,7 @@
     unichar *buffer = malloc(sizeof(unichar) * ([groupEndMarkerName length] + 1));
     
     [groupEndMarkerName getCharacters:buffer range:r];
-    buffer[([groupEndMarkerName length] + 1)] = 0;
+    buffer[([groupEndMarkerName length])] = 0;
     
     for (NSUInteger i = 0; i < [groupEndMarkerName length]; i++) {
         [extraDataStream writeInt16:buffer[i]];
