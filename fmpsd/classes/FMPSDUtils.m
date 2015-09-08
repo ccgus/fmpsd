@@ -63,7 +63,7 @@
     //CGColorSpaceRef linearCS = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGBLinear);
     
     NSImage *compareTo = [[NSImage alloc] initByReferencingURL:pathURL];
-    NSBitmapImageRep *rep = [[compareTo representations] lastObject];
+    NSBitmapImageRep *rep  = (id)[[compareTo representations] lastObject];
     NSRect r = NSMakeRect(0, 0, [rep pixelsWide], [rep pixelsHigh]);
     
     NSString *tempPath = [NSString stringWithFormat:@"/private/tmp/%@.tiff", [self stringWithUUID]];
