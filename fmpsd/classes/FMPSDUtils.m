@@ -33,7 +33,9 @@
                                            [NSNumber numberWithBool:YES], kCIContextUseSoftwareRenderer,
                                            nil];
     
-    CIContext *ctx = [CIContext contextWithCGContext:nil options:contextOptions];
+    CGContextRef cgContextToMakeClangBeQuiet = FMPSDCGBitmapContextCreate(bounds.size, cs);
+    
+    CIContext *ctx = [CIContext contextWithCGContext:cgContextToMakeClangBeQuiet options:contextOptions];
     CGImageRef ref = [ctx createCGImage:img fromRect:bounds];
     FMAssert(ref);
     
@@ -50,6 +52,7 @@
     
     CFRelease(imageDestination);
     CGImageRelease(ref);
+    CGContextRelease(cgContextToMakeClangBeQuiet);
     
 }
 
