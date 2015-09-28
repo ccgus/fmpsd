@@ -656,6 +656,8 @@
                 //debug(@"type: %d", type);
                 
                 switch (type) {
+                    case 0:
+                        _dividerType = FMPSDLayerTypeNormal;
                     case 1:
                     case 2:
                         _dividerType = FMPSDLayerTypeFolder;
@@ -663,6 +665,9 @@
                     case 3:
                         _dividerType = FMPSDLayerTypeHidden;
                         break;
+                    default:
+                        assert(NO);
+                        _dividerType = FMPSDLayerTypeNormal;
                 }
             }
 
@@ -924,6 +929,12 @@
         int channelId = [self channelIdForRow:j];
         
         FMPSDDebug(@"Reading row %d, channel id %d for %@ lineLengths ? %d pos %ld _channelLens[j]: %d", j, channelId, _layerName, (lineLengths != nil), [stream location], _channelLens[j]);
+        
+        if (_channelLens[j] == 2) {
+            debug(@"it's empty…");
+            [stream skipLength:2];
+            continue;
+        }
         
         if (channelId == -1) { // alpha
             FMPSDDebug(@"reading alpha");
