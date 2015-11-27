@@ -125,12 +125,18 @@
             int testG = b.g;
             int testB = b.b;
             
+            
+            if ((keyA == testA) && (keyA <= tolerance)) { // we're 100% transparent.  Dont' bother comparing the colors.
+                continue;
+            }
+            
+            
             //if ((keyA != testA) or (keyR != testR) or (keyG != testG) or (keyB != testB)) {
             if ((abs(keyA - testA) > tolerance) ||
                 (abs(keyR - testR) > tolerance) ||
                 (abs(keyG - testG) > tolerance) ||
                 (abs(keyB - testB) > tolerance)) {
-                NSLog(@"different pixel at: %d,%d", x, y);
+                NSLog(@"different pixel at: %d,%d tolerance is %d", x, y, tolerance);
                 
                 bad = YES;
                 
