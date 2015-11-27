@@ -8,7 +8,7 @@
 
 #import "FMPSD.h"
 #import "FMPSDUtils.h"
-#import <QuartzCore/QuartzCore.h>
+#import <CoreImage/CoreImage.h>
 
 @implementation FMPSDUtils
 
@@ -29,14 +29,17 @@
     
     NSMutableDictionary *contextOptions = [NSMutableDictionary dictionaryWithObjectsAndKeys:
                                            (__bridge id)cs, kCIContextOutputColorSpace,
-                                           (__bridge id)cs, kCIContextWorkingColorSpace,
-                                           [NSNumber numberWithBool:YES], kCIContextUseSoftwareRenderer,
+                                           //(__bridge id)cs, kCIContextWorkingColorSpace,
+                                           //[NSNumber numberWithBool:YES], kCIContextUseSoftwareRenderer,
                                            nil];
     
     CGContextRef cgContextToMakeClangBeQuiet = FMPSDCGBitmapContextCreate(bounds.size, cs);
     
     CIContext *ctx = [CIContext contextWithCGContext:cgContextToMakeClangBeQuiet options:contextOptions];
-    CGImageRef ref = [ctx createCGImage:img fromRect:bounds];
+    
+    [ctx drawImage:img inRect:bounds fromRect:bounds];
+    
+    CGImageRef ref = CGBitmapContextCreateImage(cgContextToMakeClangBeQuiet);
     FMAssert(ref);
     
     NSURL *u = [NSURL fileURLWithPath:path];
