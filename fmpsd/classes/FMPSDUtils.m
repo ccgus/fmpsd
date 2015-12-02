@@ -8,7 +8,7 @@
 
 #import "FMPSD.h"
 #import "FMPSDUtils.h"
-#import <CoreImage/CoreImage.h>
+#import <QuartzCore/QuartzCore.h>
 
 @implementation FMPSDUtils
 
