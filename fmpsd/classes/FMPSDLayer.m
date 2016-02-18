@@ -852,7 +852,7 @@
                 
                 CFRetain((__bridge CFTypeRef)*err);
                 
-                debug(@"err: '%@' %p", *err, err);
+                debug(@"err: '%@' %p", *err, (void*)err);
             }
                 
             return nil;
