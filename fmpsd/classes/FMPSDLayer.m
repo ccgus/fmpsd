@@ -626,7 +626,19 @@
             FMPSDDebug(@"FMPSDStringForHFSTypeCode(tag): %@:%d", FMPSDStringForHFSTypeCode(tag), sigSize);
             
             if (tag == 'luni') { // layer name as unicode.
-                [stream skipLength:sigSize];
+                // Chunk begins with A 4-byte length field, representing the
+                // number of characters in the string (not bytes).
+                // The string of Unicode values follow, two bytes per character.
+                uint32_t unicodeCharCount = [stream readInt32];
+                uint32_t stringSize = unicodeCharCount * 2;
+                NSMutableData *d = [stream readDataOfLength:stringSize];
+                NSString *unicodeName = [[NSString alloc] initWithBytes:[d bytes] length:stringSize encoding:NSUTF16BigEndianStringEncoding];
+                [self setLayerName:unicodeName];
+                FMPSDDebug(@"Unicode layer name is '%@'", _layerName);
+                int32_t skipSize = (int32_t)sigSize - (int32_t)stringSize - 4;
+                if (skipSize > 0) {
+                    [stream skipLength:skipSize];
+                }
             }
             else if (tag == 'lyid') { // layer id.
                 _layerId = [stream readInt32];
