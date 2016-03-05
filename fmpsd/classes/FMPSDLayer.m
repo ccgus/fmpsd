@@ -103,7 +103,7 @@
     [stream writeInt8:255]; // opactiy
     [stream writeInt8:0]; //clipping Clipping: 0 = base, 1 = non–base
     
-    uint8 flags = 10;
+    uint8_t flags = 10;
     if (!_transparencyProtected && _visible) {
         flags = 8;
     }
@@ -137,17 +137,17 @@
     
     [extraDataStream writeInt32:'8BIM'];
     [extraDataStream writeInt32:'lsct'];
-    [extraDataStream writeInt32:sizeof(uint32)];
+    [extraDataStream writeInt32:sizeof(uint32_t)];
     [extraDataStream writeInt32:3]; // 3 = FMPSDLayerTypeHidden
     
     [extraDataStream writeInt32:'8BIM'];
     [extraDataStream writeInt32:'luni']; // unicode version of string.
     
     NSRange r = NSMakeRange(0, [groupEndMarkerName length]);
-    [extraDataStream writeInt32:(uint32)(r.length * 2) + 4]; // length of the next bit of data.
+    [extraDataStream writeInt32:(uint32_t)(r.length * 2) + 4]; // length of the next bit of data.
     
     // length of our data as a unicode string.
-    [extraDataStream writeInt32:(uint32)r.length];
+    [extraDataStream writeInt32:(uint32_t)r.length];
     
     unichar *buffer = malloc(sizeof(unichar) * ([groupEndMarkerName length] + 1));
     
@@ -207,7 +207,7 @@
     [stream writeInt8:0]; //clipping Clipping: 0 = base, 1 = non–base
     
     // uint8 f = ((_visible << 0x01) | _transparencyProtected);
-    uint8 flags = 10;
+    uint8_t flags = 10;
     if (!_transparencyProtected && _visible) {
         flags = 8;
     }
@@ -265,10 +265,10 @@
         [extraDataStream writeInt32:'luni']; // unicode version of string.
         
         NSRange r = NSMakeRange(0, [_layerName length]);
-        [extraDataStream writeInt32:(uint32)(r.length * 2) + 4]; // length of the next bit of data.
+        [extraDataStream writeInt32:(uint32_t)(r.length * 2) + 4]; // length of the next bit of data.
         
         // length of our data as a unicode string.
-        [extraDataStream writeInt32:(uint32)r.length];
+        [extraDataStream writeInt32:(uint32_t)r.length];
         
         unichar *buffer = malloc(sizeof(unichar) * ([_layerName length] + 1));
         
@@ -441,7 +441,7 @@
 }
 
 - (BOOL)readLayerInfo:(FMPSDStream*)stream error:(NSError *__autoreleasing *)err {
-    uint32 sig;
+    uint32_t sig;
     
     BOOL success    = YES;
     
@@ -466,8 +466,8 @@
     FMAssert(_channels <= 10);
     
     for (int chCount = 0; chCount < _channels; chCount++) {
-        sint16 chandId = [stream readInt16];
-        uint32 chanLen = [stream readInt32];
+        int16_t chandId = [stream readInt16];
+        uint32_t chanLen = [stream readInt32];
         
         _channelIds[chCount]    = chandId;
         _channelLens[chCount]   = chanLen;
@@ -487,7 +487,7 @@
     
     [stream readInt8]; // uint8 clipping
     
-    uint8 flags = [stream readInt8];
+    uint8_t flags = [stream readInt8];
     
     _transparencyProtected = flags & 0x01;
     _visible = ((flags >> 1) & 0x01) == 0;
@@ -504,11 +504,11 @@
     [stream readInt8]; // filler
     
     
-    uint32 lenOfExtraData     = [stream readInt32]; // 84454 - 2600 len
+    uint32_t lenOfExtraData     = [stream readInt32]; // 84454 - 2600 len
     //lenOfExtraData = (lenOfExtraData % 2 == 0) ? lenOfExtraData : lenOfExtraData + 1;
     //lenOfExtraData = (lenOfExtraData) & ~0x01;
     
-    uint32 foob = lenOfExtraData;
+    uint32_t foob = lenOfExtraData;
     foob = (foob % 2 == 0) ? foob : foob + 1;
     foob = (foob) & ~0x01;
     
@@ -526,7 +526,7 @@
 		// Size of the data: 36, 20, or 0. If zero, the following fields are not
 		// present
         
-        uint32 lenOfMask = [stream readInt32];
+        uint32_t lenOfMask = [stream readInt32];
         
         FMPSDDebug(@"  lenOfMask:              %d", lenOfMask);
         
@@ -538,7 +538,7 @@
             
             
             _maskColor    = [stream readInt8];
-            uint8 lflags    = [stream readInt8];
+            uint8_t lflags    = [stream readInt8];
             
             if (lenOfMask == 20) {
                 [stream skipLength:2];
@@ -576,7 +576,7 @@
         FMPSDDebug(@"location before blend read: %ld", [stream location]);
         
         // Layer blending ranges data
-        uint32 blendLength = [stream readInt32];
+        uint32_t blendLength = [stream readInt32];
         
         // 83446
         if (blendLength == 65535) {
@@ -591,7 +591,7 @@
         
         
         // Layer name: Pascal string, padded to a multiple of 4 bytes.
-        uint8 psize = [stream readInt8];
+        uint8_t psize = [stream readInt8];
         psize = ((psize + 1 + 3) & ~0x03) - 1;
         
         FMPSDDebug(@"Length of layer name is %d", psize);
@@ -609,8 +609,8 @@
         while ([stream location] < startExtraLocation + lenOfExtraData) {
             
             FMPSDCheck8BIMSig(sig, stream, err);
-            uint32 tag  = [stream readInt32];
-            uint32 sigSize = [stream readInt32];
+            uint32_t tag  = [stream readInt32];
+            uint32_t sigSize = [stream readInt32];
             
             // re sigSize: the official docs say "Length data below, rounded up to an even byte count."
             // but that's complete bullshit, as in the case of Adobe Fireworks CS3 spitting out bad data.
@@ -687,7 +687,7 @@
                 // http://www.adobe.com/devnet-apps/photoshop/fileformatashtml/PhotoshopFileFormats.htm#50577409_19762
                 long textStartLocation = [stream location];
                 
-                uint16 version = [stream readInt16];
+                uint16_t version = [stream readInt16];
                 if (version != 1) {
                     NSLog(@"Can't read the text data, we don't understand version %d!", version);
                     return NO;
@@ -702,7 +702,7 @@
                 t.tx = [stream readDouble64];
                 t.ty = [stream readDouble64];
                 
-                uint16 textVersion = [stream readInt16];
+                uint16_t textVersion = [stream readInt16];
                 [stream readInt32]; // descriptorVersion
                 
                 if (textVersion != 50) {
@@ -712,10 +712,10 @@
                 
                 [self setTextDescriptor:[FMPSDDescriptor descriptorWithStream:stream psd:_psd]];
                 
-                uint16 warpVersion = [stream readInt16];
+                uint16_t warpVersion = [stream readInt16];
                 FMAssert(warpVersion == 1);
                 
-                uint32 descriptorVersion = [stream readInt32];
+                uint32_t descriptorVersion = [stream readInt32];
                 FMAssert(descriptorVersion == 16);
                 
                 [FMPSDDescriptor descriptorWithStream:stream psd:_psd];
@@ -756,12 +756,12 @@
 }
 
 
-- (char*)parsePlaneCompressed:(FMPSDStream*)stream lineLengths:(uint16 *)lineLengths planeNum:(int)planeNum isMask:(BOOL)isMask {
+- (char*)parsePlaneCompressed:(FMPSDStream*)stream lineLengths:(uint16_t *)lineLengths planeNum:(int)planeNum isMask:(BOOL)isMask {
     
     //NSLog(@"location at parsePlaneCompressed: %ld for planeNum %d", [stream location], planeNum);
     
-    uint32 width = _width;
-    uint32 height = _height;
+    uint32_t width = _width;
+    uint32_t height = _height;
     
     
     if (isMask) {
@@ -781,8 +781,8 @@
     
     int pos = 0;
     int lineIndex = planeNum * height;
-    for (uint32 i = 0; i < height; i++) {
-        uint16 len = lineLengths[lineIndex++];
+    for (uint32_t i = 0; i < height; i++) {
+        uint16_t len = lineLengths[lineIndex++];
         
         //debug(@"%d: %d", i, len);
         
@@ -799,7 +799,7 @@
     return b;
 }
 
-- (char*)readPlaneFromStream:(FMPSDStream*)stream lineLengths:(uint16 *)lineLengths needReadPlaneInfo:(BOOL)needReadPlaneInfo planeNum:(int)planeNum  error:(NSError *__autoreleasing *)err {
+- (char*)readPlaneFromStream:(FMPSDStream*)stream lineLengths:(uint16_t *)lineLengths needReadPlaneInfo:(BOOL)needReadPlaneInfo planeNum:(int)planeNum  error:(NSError *__autoreleasing *)err {
     
     //BOOL rawImageData           = NO;
     BOOL rleEncoded             = NO;
@@ -810,13 +810,13 @@
     
     //debug(@"planeNum: %d, needReadPlaneInfo? %d", planeNum, needReadPlaneInfo);
     
-    uint32 thisLength = _channelLens[planeNum];
-    sint16 chanId     = _channelIds[planeNum];
+    uint32_t thisLength = _channelLens[planeNum];
+    int16_t chanId     = _channelIds[planeNum];
     
     BOOL isMask       = (chanId == -2);
     
     if (needReadPlaneInfo) {
-        uint16 encoding = [stream readInt16];
+        uint16_t encoding = [stream readInt16];
         
         //debug(@"encoding: %d", encoding);
         //NSLog(@"_channelLens: %d", _channelLens[_channels]);
@@ -881,9 +881,9 @@
         if (rleEncoded) {
             if (lineLengths == nil) {
                 
-                sint32 h = (isMask ? _maskHeight : _height);
+                int32_t h = (isMask ? _maskHeight : _height);
                 
-                lineLengths = [[NSMutableData dataWithLength:sizeof(uint16) * h] mutableBytes];
+                lineLengths = [[NSMutableData dataWithLength:sizeof(uint16_t) * h] mutableBytes];
                 
                 //debug(@"(isMask ? _maskHeight : _height): %d", h);
                 
@@ -907,7 +907,7 @@
         ret = (char*)[self parsePlaneCompressed:stream lineLengths:lineLengths planeNum:planeNum isMask:isMask];
     }
     else {
-        uint32 size = _width * _height;
+        int32_t size = _width * _height;
         
         if (isMask) {
             FMAssert(_maskWidth > 0);
@@ -930,7 +930,7 @@
     return _channelIds[row];
 }
 
-- (BOOL)readImageDataFromStream:(FMPSDStream*)stream lineLengths:(uint16 *)lineLengths needReadPlanInfo:(BOOL)needsPlaneInfo error:(NSError *__autoreleasing *)err {
+- (BOOL)readImageDataFromStream:(FMPSDStream*)stream lineLengths:(uint16_t *)lineLengths needReadPlanInfo:(BOOL)needsPlaneInfo error:(NSError *__autoreleasing *)err {
     
     char* r = nil, *g = nil, *b = nil, *a = nil, *m = nil;
     
@@ -1056,7 +1056,7 @@
             FMPSDPixel *p = &c[_width * row];
             
             size_t planeStart = (row * _width);
-            sint32 x = 0;
+            int32_t x = 0;
             while (x < _width) {
                 
                 size_t planeLoc = planeStart + x;
@@ -1099,7 +1099,7 @@
     return YES;
 }
 
-- (uint8)maskColor {
+- (uint8_t)maskColor {
     return _maskColor;
 }
 
@@ -1111,8 +1111,8 @@
     
     if (anImage) {
         CGImageRetain(anImage);
-        _maskWidth = (uint32)CGImageGetWidth(anImage);
-        _maskHeight = (uint32)CGImageGetHeight(anImage);
+        _maskWidth = (uint32_t)CGImageGetWidth(anImage);
+        _maskHeight = (uint32_t)CGImageGetHeight(anImage);
     }
     
     if (_mask) {
