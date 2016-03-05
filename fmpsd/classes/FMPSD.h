@@ -26,7 +26,7 @@
 
 #define TSDebug(...) { if (TSDebugOn) { NSLog(__VA_ARGS__); } }
 
-enum {
+typedef enum {
     FMPSDBitmapMode = 0,
     FMPSDGrayscaleMode = 1,
     FMPSDIndexedMode = 2,
@@ -38,7 +38,7 @@ enum {
 } FMPSDMode;
 
 
-enum {
+typedef enum {
     FMPSDLayerTypeNormal,
     FMPSDLayerTypeFolder,
     FMPSDLayerTypeHidden
