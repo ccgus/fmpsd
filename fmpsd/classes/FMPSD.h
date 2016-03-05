@@ -8,8 +8,8 @@
 
 #define NS_BUILD_32_LIKE_64 1
 
-#import <Cocoa/Cocoa.h>
-#import <ApplicationServices/ApplicationServices.h>
+#import <Foundation/Foundation.h>
+#import <CoreImage/CoreImage.h>
 #import <Accelerate/Accelerate.h>
 #import "FMPSDLayer.h"
 

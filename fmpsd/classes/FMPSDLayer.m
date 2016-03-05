@@ -12,6 +12,7 @@
 #import "FMPSDCIFilters.h"
 #import "FMPSDTextEngineParser.h"
 #import <Accelerate/Accelerate.h>
+#import <ImageIO/ImageIO.h>
 
 
 @interface FMPSDLayer()

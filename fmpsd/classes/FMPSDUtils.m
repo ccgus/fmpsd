@@ -9,6 +9,8 @@
 #import "FMPSD.h"
 #import "FMPSDUtils.h"
 #import <QuartzCore/QuartzCore.h>
+#import <ImageIO/ImageIO.h>
+#import <AppKit/NSImage.h>
 
 @implementation FMPSDUtils
 

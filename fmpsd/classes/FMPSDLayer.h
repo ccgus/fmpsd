@@ -6,7 +6,9 @@
 //  Copyright 2010 Flying Meat Inc. All rights reserved.
 //
 
-#import <Cocoa/Cocoa.h>
+#import <Foundation/Foundation.h>
+#import <CoreGraphics/CoreGraphics.h>
+#import <CoreImage/CoreImage.h>
 #import "FMPSDStream.h"
 #import "FMPSDDescriptor.h"
 
