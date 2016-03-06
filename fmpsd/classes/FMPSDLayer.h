@@ -72,17 +72,17 @@
 
 
 + (id)layerWithStream:(FMPSDStream*)stream psd:(FMPSD*)psd error:(NSError *__autoreleasing *)err;
-+ (id)layerWithSize:(NSSize)s psd:(FMPSD*)psd;
++ (id)layerWithSize:(CGSize)s psd:(FMPSD*)psd;
 + (id)baseLayer;
 
 - (BOOL)readImageDataFromStream:(FMPSDStream*)stream lineLengths:(uint16_t *)lineLengths needReadPlanInfo:(BOOL)needsPlaneInfo error:(NSError *__autoreleasing *)err;
 - (void)writeLayerInfoToStream:(FMPSDStream*)stream;
 - (void)writeImageDataToStream:(FMPSDStream*)stream;
 
-- (NSRect)frame;
-- (void)setFrame:(NSRect)frame;
-- (void)setMaskFrame:(NSRect)frame;
-- (NSRect)maskFrame;
+- (CGRect)frame;
+- (void)setFrame:(CGRect)frame;
+- (void)setMaskFrame:(CGRect)frame;
+- (CGRect)maskFrame;
 - (CGImageRef)image;
 - (void)setImage:(CGImageRef)anImage;
 - (CGImageRef)mask;

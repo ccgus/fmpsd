@@ -33,7 +33,7 @@
     return ret;
 }
 
-+ (id)layerWithSize:(NSSize)s psd:(FMPSD*)psd {
++ (id)layerWithSize:(CGSize)s psd:(FMPSD*)psd {
     
     FMPSDLayer *ret = [[self alloc] init];
     [ret setPsd:psd];
@@ -1151,11 +1151,11 @@
     [_layers addObject:layer];
 }
 
-- (NSRect)frame {
-    return NSMakeRect(_left, (float)[_psd height] - (float)_bottom, _width, _height);
+- (CGRect)frame {
+    return CGRectMake(_left, (float)[_psd height] - (float)_bottom, _width, _height);
 }
 
-- (void)setFrame:(NSRect)frame {
+- (void)setFrame:(CGRect)frame {
     
     // the origin is in the top left.
     
@@ -1164,28 +1164,28 @@
     _width              = frame.size.width;
     _height             = frame.size.height;
     
-    _left               = NSMinX(frame);
-    _right              = NSMaxX(frame);
+    _left               = CGRectGetMinX(frame);
+    _right              = CGRectGetMaxX(frame);
         
-    _top                = psdHeight - NSMaxY(frame);
-    _bottom             = psdHeight - NSMinY(frame);
+    _top                = psdHeight - CGRectGetMaxY(frame);
+    _bottom             = psdHeight - CGRectGetMinY(frame);
 }
 
-- (NSRect)maskFrame {
-    return NSMakeRect(_maskLeft, (float)[_psd height] - (float)_maskBottom, _maskWidth, _maskHeight);
+- (CGRect)maskFrame {
+    return CGRectMake(_maskLeft, (float)[_psd height] - (float)_maskBottom, _maskWidth, _maskHeight);
 }
 
-- (void)setMaskFrame:(NSRect)frame {
+- (void)setMaskFrame:(CGRect)frame {
     CGFloat psdHeight   = [_psd height];
     
     _maskWidth  = frame.size.width;
     _maskHeight = frame.size.height;
     
-    _maskLeft   = NSMinX(frame);
-    _maskRight  = NSMaxX(frame);
+    _maskLeft   = CGRectGetMinX(frame);
+    _maskRight  = CGRectGetMaxX(frame);
     
-    _maskTop    = psdHeight - NSMaxY(frame);
-    _maskBottom = psdHeight - NSMinY(frame);
+    _maskTop    = psdHeight - CGRectGetMaxY(frame);
+    _maskBottom = psdHeight - CGRectGetMinY(frame);
 }
 
 
@@ -1200,7 +1200,7 @@
     
     if (_isGroup) {
         
-        CIImage *i = [[CIImage emptyImage] imageByCroppingToRect:NSMakeRect(0, 0, [_psd width], [_psd height])];
+        CIImage *i = [[CIImage emptyImage] imageByCroppingToRect:CGRectMake(0, 0, [_psd width], [_psd height])];
         
         for (FMPSDLayer *layer in [_layers reverseObjectEnumerator]) {
             
@@ -1222,14 +1222,14 @@
     CIImage *img = nil;
     
     if (!_image) {
-        img = [[CIImage emptyImage] imageByCroppingToRect:NSMakeRect(0, 0, _width, _height)];
+        img = [[CIImage emptyImage] imageByCroppingToRect:CGRectMake(0, 0, _width, _height)];
     }
     else {
         img = [CIImage imageWithCGImage:_image];
     }
     
     
-    NSRect r = [self frame];
+    CGRect r = [self frame];
     img = [img imageByApplyingTransform:CGAffineTransformMakeTranslation(r.origin.x, r.origin.y)];
     
     if (_opacity < 255) {
@@ -1245,7 +1245,7 @@
     if (_mask) {
         
         CIImage *maskImage = [CIImage imageWithCGImage:_mask];
-        NSRect maskFrame = [self maskFrame];
+        CGRect maskFrame = [self maskFrame];
         maskImage = [maskImage imageByApplyingTransform:CGAffineTransformMakeTranslation(maskFrame.origin.x, maskFrame.origin.y)];
         
         CIFilter *filter = [CIFilter filterWithName:@"CIColorInvert"];

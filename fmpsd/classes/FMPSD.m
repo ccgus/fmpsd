@@ -397,7 +397,7 @@ BOOL FMPSDPrintDebugInfo = NO;
     
     FMPSDDebug(@"location when reading in composite: %ld", [stream location]);
     
-    FMPSDLayer *layer = [FMPSDLayer layerWithSize:NSMakeSize(_width, _height) psd:self];
+    FMPSDLayer *layer = [FMPSDLayer layerWithSize:CGSizeMake(_width, _height) psd:self];
     
     [layer setChannels:_channels];
     [layer setupChannelIdsForCompositeRead];
@@ -526,7 +526,7 @@ BOOL FMPSDPrintDebugInfo = NO;
     [stream writeDataWithLengthHeader:[layerAndGlobalMaskStream outputData]];
     layerAndGlobalMaskStream = nil;
     
-    FMPSDLayer *composite = [FMPSDLayer layerWithSize:NSMakeSize(_width, _height) psd:self];
+    FMPSDLayer *composite = [FMPSDLayer layerWithSize:CGSizeMake(_width, _height) psd:self];
     
     if (_savingCompositeImageRef) {
         [composite setImage:_savingCompositeImageRef];
@@ -574,7 +574,7 @@ BOOL FMPSDPrintDebugInfo = NO;
 
 - (CIImage*)compositeCIImage {
     
-    CIImage *i = [[CIImage emptyImage] imageByCroppingToRect:NSMakeRect(0, 0, _width, _height)];
+    CIImage *i = [[CIImage emptyImage] imageByCroppingToRect:CGRectMake(0, 0, _width, _height)];
     
     
     CIFilter *sourceOver = [CIFilter filterWithName:@"CISourceOverCompositing"];
