@@ -15,9 +15,9 @@ extern BOOL FMPSDPrintDebugInfo;
 
 @interface FMABR ()
 
-@property (assign) uint16 version;
-@property (assign) uint16 versionVersion;
-@property (assign) uint16 numberOfBrushes;
+@property (assign) uint16_t version;
+@property (assign) uint16_t versionVersion;
+@property (assign) uint16_t numberOfBrushes;
 
 @end
 
@@ -122,13 +122,13 @@ extern BOOL FMPSDPrintDebugInfo;
     
     _versionVersion = _numberOfBrushes; // it's a version of the version.
     
-    uint32 sig;
+    uint32_t sig;
     FMPSDCheckSig('8BIM', sig, stream, err);
     FMPSDCheckSig('samp', sig, stream, err);
     
     // skip through all the data to find the number of brushes.
     _numberOfBrushes = 0;
-    uint32 length = [stream readInt32];
+    uint32_t length = [stream readInt32];
     long currentPosition = [stream location];
     
     long endPosition = currentPosition + length;
@@ -136,7 +136,7 @@ extern BOOL FMPSDPrintDebugInfo;
     FMPSDDebug(@"Finding brush count");
     
     while ([stream hasLengthToRead:0] && [stream location] < endPosition) {
-        uint32 brushSize = [stream readInt32];
+        uint32_t brushSize = [stream readInt32];
         
         // pad it to a multiple of 4
         brushSize = (brushSize + (3)) & ~0x03;
@@ -149,7 +149,7 @@ extern BOOL FMPSDPrintDebugInfo;
     
     [stream seekToLocation:currentPosition];
     
-    for (uint16 idx = 0; idx < _numberOfBrushes; idx++) {
+    for (uint16_t idx = 0; idx < _numberOfBrushes; idx++) {
         
         FMPSDDebug(@"Attempting to load brush %d at location %ld", idx, [stream location]);
         
@@ -165,7 +165,7 @@ extern BOOL FMPSDPrintDebugInfo;
     FMPSDCheckSig('8BIM', sig, stream, err);
     FMPSDCheckSig('patt', sig, stream, err);
     
-    uint32 patternInfoLength = [stream readInt32];
+    uint32_t patternInfoLength = [stream readInt32];
     [stream skipLength:patternInfoLength];
     
     FMPSDCheckSig('8BIM', sig, stream, err);
@@ -177,7 +177,7 @@ extern BOOL FMPSDPrintDebugInfo;
     FMPSDCheckSig('Brsh', sig, stream, err);
     FMPSDCheckSig('VlLs', sig, stream, err);
     
-    uint32 brushInfoSectionCount = [stream readSInt32];
+    uint32_t brushInfoSectionCount = [stream readSInt32];
     
     for (NSUInteger i = 0; i < brushInfoSectionCount; i++) {
         
@@ -234,13 +234,13 @@ extern BOOL FMPSDPrintDebugInfo;
     
     FMPSBrush *brush = [FMPSBrush new];
     
-    uint32 sectionLength = [stream readInt32];
+    uint32_t sectionLength = [stream readInt32];
     
     sectionLength = (sectionLength + (3)) & ~0x03;
     
     long brushEndLocation = [stream location] + sectionLength;
     
-    uint8 stringLength = [stream readInt8];
+    uint8_t stringLength = [stream readInt8];
     assert(stringLength == 36);
     
     NSString *idString = [stream readPSDStringOfLength:stringLength];
@@ -276,8 +276,8 @@ extern BOOL FMPSDPrintDebugInfo;
     size_t l = [stream readInt32];
     size_t b = [stream readInt32];
     size_t r = [stream readInt32];
-    uint16 depth = [stream readInt16];
-    uint8 compressionType  = [stream readInt8];
+    uint16_t depth = [stream readInt16];
+    uint8_t compressionType  = [stream readInt8];
     
     FMPSDDebug(@"%d %d %d %d, depth: %d, comp: %d", t, l, b, r, depth, compressionType);
     
@@ -297,7 +297,7 @@ extern BOOL FMPSDPrintDebugInfo;
     else {
         // better be rle.
         
-        uint16 *lineLengths  = [[NSMutableData dataWithLength:sizeof(uint16) * height] mutableBytes];
+        uint16_t *lineLengths  = [[NSMutableData dataWithLength:sizeof(uint16_t) * height] mutableBytes];
         
         for (size_t i = 0; i < height; i++) {
             lineLengths[i] = [stream readInt16];
@@ -310,8 +310,8 @@ extern BOOL FMPSDPrintDebugInfo;
         
         int pos = 0;
         int lineIndex = 0;
-        for (uint32 i = 0; i < height; i++) {
-            uint16 len = lineLengths[lineIndex++];
+        for (uint32_t i = 0; i < height; i++) {
+            uint16_t len = lineLengths[lineIndex++];
             
             FMAssert(!(len > (width * 2)));
             

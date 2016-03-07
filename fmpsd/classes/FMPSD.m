@@ -10,6 +10,7 @@
 #import "FMPSD.h"
 #import "FMPSDStream.h"
 #import "FMPSDUtils.h"
+#import <ImageIO/ImageIO.h>
 #import <QuartzCore/QuartzCore.h>
 
 BOOL FMPSDPrintDebugInfo = NO;
@@ -191,7 +192,7 @@ BOOL FMPSDPrintDebugInfo = NO;
     }
     
     // make sure it's a psd file, or at least has the right signature.
-    uint32 sig;
+    uint32_t sig;
     if ((sig = [stream readInt32]) != '8BPS') {
         
         NSString *s = [NSString stringWithFormat:@"%s:%d invalid start signature '%@'", __FUNCTION__, __LINE__, FMPSDStringForHFSTypeCode(sig)];
@@ -234,14 +235,14 @@ BOOL FMPSDPrintDebugInfo = NO;
         return NO;
     }
     
-    uint32 colorMapLen = [stream readInt32];
+    uint32_t colorMapLen = [stream readInt32];
     _colormapData = [stream readDataOfLength:colorMapLen];
     
     
     FMPSDDebug(@"colorMapLen: %d", colorMapLen);
     
     // we're reading in the resource bits for the PSD file
-    uint32 length = [stream readInt32];
+    uint32_t length = [stream readInt32];
     long endLoc   = [stream location] + length;
     
     FMPSDDebug(@"doc resource length: %d", length);
@@ -253,11 +254,11 @@ BOOL FMPSDPrintDebugInfo = NO;
                 
         FMPSDCheck8BIMSig(sig, stream, err);
         
-        uint16 uID  = [stream readInt16];
+        uint16_t uID  = [stream readInt16];
         NSString *s = [stream readPascalString];
         
         // Actual size of resource data that follows
-        uint32 sizeofdata = [stream readInt32];
+        uint32_t sizeofdata = [stream readInt32];
         
         FMPSDDebug(@" + %d '%@' len: %d", uID, s, sizeofdata);
         
@@ -284,14 +285,14 @@ BOOL FMPSDPrintDebugInfo = NO;
     FMAssert(endLoc == [stream location]);
     
     // Layer and Mask Information Section
-    uint32 layerAndMaskInformationSectionLength = [stream readInt32];
+    uint32_t layerAndMaskInformationSectionLength = [stream readInt32];
     long pos = [stream location];
     
     FMPSDDebug(@"layer and mask info length: %d", layerAndMaskInformationSectionLength);
     
     if (layerAndMaskInformationSectionLength > 0) {
         
-        uint32 layerInfoLen = [stream readInt32]; // Length of the layers info section, rounded up to a multiple of 2
+        uint32_t layerInfoLen = [stream readInt32]; // Length of the layers info section, rounded up to a multiple of 2
         
         if ((layerInfoLen & 0x01) != 0) {
             layerInfoLen++;
@@ -301,7 +302,7 @@ BOOL FMPSDPrintDebugInfo = NO;
         
         if (layerInfoLen > 0) {
             
-            sint16 layerCt = [stream readInt16]; // Layer count. If it is a negative number, its absolute value is the number of layers and the first alpha channel contains the transparency data for the merged result.
+            int16_t layerCt = [stream readInt16]; // Layer count. If it is a negative number, its absolute value is the number of layers and the first alpha channel contains the transparency data for the merged result.
             
             layerCt = abs(layerCt);
             
@@ -396,7 +397,7 @@ BOOL FMPSDPrintDebugInfo = NO;
     
     FMPSDDebug(@"location when reading in composite: %ld", [stream location]);
     
-    FMPSDLayer *layer = [FMPSDLayer layerWithSize:NSMakeSize(_width, _height) psd:self];
+    FMPSDLayer *layer = [FMPSDLayer layerWithSize:CGSizeMake(_width, _height) psd:self];
     
     [layer setChannels:_channels];
     [layer setupChannelIdsForCompositeRead];
@@ -408,10 +409,10 @@ BOOL FMPSDPrintDebugInfo = NO;
     FMPSDDebug(@"rle composite: %d", rle);
     
     if (rle) {
-        uint32 nLines = _height * _channels;
-        uint16 *lineLengths = malloc(sizeof(uint16) * nLines);
+        uint32_t nLines = _height * _channels;
+        uint16_t *lineLengths = malloc(sizeof(uint16_t) * nLines);
         
-        for (uint32 i = 0; i < nLines; i++) {
+        for (uint32_t i = 0; i < nLines; i++) {
             lineLengths[i] = [stream readInt16];
         }
         
@@ -525,7 +526,7 @@ BOOL FMPSDPrintDebugInfo = NO;
     [stream writeDataWithLengthHeader:[layerAndGlobalMaskStream outputData]];
     layerAndGlobalMaskStream = nil;
     
-    FMPSDLayer *composite = [FMPSDLayer layerWithSize:NSMakeSize(_width, _height) psd:self];
+    FMPSDLayer *composite = [FMPSDLayer layerWithSize:CGSizeMake(_width, _height) psd:self];
     
     if (_savingCompositeImageRef) {
         [composite setImage:_savingCompositeImageRef];
@@ -573,7 +574,7 @@ BOOL FMPSDPrintDebugInfo = NO;
 
 - (CIImage*)compositeCIImage {
     
-    CIImage *i = [[CIImage emptyImage] imageByCroppingToRect:NSMakeRect(0, 0, _width, _height)];
+    CIImage *i = [[CIImage emptyImage] imageByCroppingToRect:CGRectMake(0, 0, _width, _height)];
     
     
     CIFilter *sourceOver = [CIFilter filterWithName:@"CISourceOverCompositing"];

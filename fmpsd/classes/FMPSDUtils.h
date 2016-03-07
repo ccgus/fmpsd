@@ -6,7 +6,7 @@
 //  Copyright 2010 Flying Meat Inc. All rights reserved.
 //
 
-#import <Cocoa/Cocoa.h>
+#import <Foundation/Foundation.h>
 
 
 @interface FMPSDUtils : NSObject {
@@ -31,11 +31,11 @@ typedef struct _FMPSDPixel {
 #endif
 } FMPSDPixel;
 
-NSRect FMPSDCGImageGetRect(CGImageRef img);
+CGRect FMPSDCGImageGetRect(CGImageRef img);
 
-CGContextRef FMPSDCGBitmapContextCreate(NSSize size, CGColorSpaceRef cs);
+CGContextRef FMPSDCGBitmapContextCreate(CGSize size, CGColorSpaceRef cs);
 
-FMPSDPixel FMPSDPixelForPointInContext(CGContextRef context, NSPoint point);
+FMPSDPixel FMPSDPixelForPointInContext(CGContextRef context, CGPoint point);
 
 FOUNDATION_STATIC_INLINE FMPSDPixel FMPSDUnPremultiply(FMPSDPixel p) {
     

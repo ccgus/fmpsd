@@ -6,7 +6,7 @@
 //  Copyright 2010 Flying Meat Inc. All rights reserved.
 //
 
-#import <Cocoa/Cocoa.h>
+#import <Foundation/Foundation.h>
 
 
 @interface FMPSDStream : NSObject {
@@ -25,16 +25,16 @@
 - (void)close;
 - (NSData*)outputData;
 
-- (uint8)readInt8;
-- (uint16)readInt16;
-- (uint32)readInt32;
-- (sint32)readSInt32;
-- (uint64)readInt64;
+- (uint8_t)readInt8;
+- (uint16_t)readInt16;
+- (uint32_t)readInt32;
+- (int32_t)readSInt32;
+- (uint64_t)readInt64;
 - (double)readDouble64;
 - (NSInteger)readChars:(char *)buffer maxLength:(NSUInteger)len;
 - (NSString*)readPSDString;
-- (NSString*)readPSDStringOfLength:(uint32)size;
-- (NSString*)readPSDStringOrGetFourByteID:(uint32*)outId;
+- (NSString*)readPSDStringOfLength:(uint32_t)size;
+- (NSString*)readPSDStringOrGetFourByteID:(uint32_t*)outId;
 - (NSString*)readPascalString;
 - (NSString*)readPSDString16;
 - (NSMutableData*)readDataOfLength:(NSUInteger)len;
@@ -45,11 +45,11 @@
 - (long)location;
 - (void)seekToLocation:(long)newLocation;
 
-- (void)writeInt64:(uint64)value;
-- (void)writeInt32:(uint32)value;
-- (void)writeInt16:(uint16)value;
-- (void)writeSInt16:(sint16)value;
-- (void)writeInt8:(uint8)value;
+- (void)writeInt64:(uint64_t)value;
+- (void)writeInt32:(uint32_t)value;
+- (void)writeInt16:(uint16_t)value;
+- (void)writeSInt16:(int16_t)value;
+- (void)writeInt8:(uint8_t)value;
 - (void)writeData:(NSData*)data;
 - (void)writeChars:(char*)chars length:(size_t)length;
 - (void)writeDataWithLengthHeader:(NSData*)data;

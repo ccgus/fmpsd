@@ -42,9 +42,16 @@ static CIKernel *FMPSDAlphaFilterKernel = nil;
 }
 
 - (CIImage *)outputImage {
+#if TARGET_OS_IPHONE    
+        // FYI: this API also is available on 10.11 and later on Mac OS X
+    return [FMPSDAlphaFilterKernel applyWithExtent:_inputImage.extent
+                                       roiCallback:^CGRect(int index, CGRect destRect) { return destRect; }
+                                         arguments:@[_inputImage, _alpha]];
+#else
     CISampler *src = [CISampler samplerWithImage:_inputImage];
     
     return [self apply:FMPSDAlphaFilterKernel, src, _alpha, nil];
+#endif
 }
 
 

@@ -8,6 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import <QuartzCore/QuartzCore.h>
+#import <AppKit/NSWorkspace.h>
 #import "FMPSD.h"
 
 

@@ -9,6 +9,13 @@
 #import "FMPSD.h"
 #import "FMPSDUtils.h"
 #import <QuartzCore/QuartzCore.h>
+#import <ImageIO/ImageIO.h>
+
+#if TARGET_OS_IPHONE
+#import <MobileCoreServices/MobileCoreServices.h>
+#else
+#import <AppKit/NSGraphics.h>   // for NSBeep
+#endif
 
 @implementation FMPSDUtils
 
@@ -21,7 +28,7 @@
 }
 
 
-+ (void)writeComposite:(CIImage*)img colorSpace:(CGColorSpaceRef)cs withBounds:(NSRect)bounds toPath:(NSString*)path {
++ (void)writeComposite:(CIImage*)img colorSpace:(CGColorSpaceRef)cs withBounds:(CGRect)bounds toPath:(NSString*)path {
     
     //kCIImageColorSpace
     
@@ -68,9 +75,8 @@
     
     //CGColorSpaceRef linearCS = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGBLinear);
     
-    NSImage *compareTo = [[NSImage alloc] initByReferencingURL:pathURL];
-    NSBitmapImageRep *rep  = (id)[[compareTo representations] lastObject];
-    NSRect r = NSMakeRect(0, 0, [rep pixelsWide], [rep pixelsHigh]);
+    CIImage *compareTo = [CIImage imageWithContentsOfURL:pathURL options:nil];
+    CGRect r = CGRectMake(0, 0, compareTo.extent.size.width, compareTo.extent.size.height);
     
     NSString *tempPath = [NSString stringWithFormat:@"/private/tmp/%@.tiff", [self stringWithUUID]];
     
@@ -93,8 +99,8 @@
     CFRelease(imageSourceRefB);
     
     CGSize size         = CGSizeMake(CGImageGetWidth(imageRefA), CGImageGetHeight(imageRefA));
-    CGContextRef ctxA   = FMPSDCGBitmapContextCreate(NSSizeFromCGSize(size), CGImageGetColorSpace(imageRefA));
-    CGContextRef ctxB   = FMPSDCGBitmapContextCreate(NSSizeFromCGSize(size), CGImageGetColorSpace(imageRefB));
+    CGContextRef ctxA   = FMPSDCGBitmapContextCreate(size, CGImageGetColorSpace(imageRefA));
+    CGContextRef ctxB   = FMPSDCGBitmapContextCreate(size, CGImageGetColorSpace(imageRefB));
     
     CGContextDrawImage(ctxA, FMPSDCGImageGetRect(imageRefA), imageRefA);
     CGContextDrawImage(ctxB, FMPSDCGImageGetRect(imageRefB), imageRefB);
@@ -112,8 +118,8 @@
     for (x = 0; x < size.width; x++) {
         
         for (y = 0; y < size.height; y++) {
-            FMPSDPixel a = FMPSDPixelForPointInContext(ctxA, NSMakePoint(x, y));
-            FMPSDPixel b = FMPSDPixelForPointInContext(ctxB, NSMakePoint(x, y));
+            FMPSDPixel a = FMPSDPixelForPointInContext(ctxA, CGPointMake(x, y));
+            FMPSDPixel b = FMPSDPixelForPointInContext(ctxB, CGPointMake(x, y));
             
             int keyA = a.a;
             int keyR = a.r;
@@ -161,6 +167,7 @@ cleanup:
     
     if (bad) {
         
+#if !TARGET_OS_IPHONE
     	NSBeep();
         
         @try {
@@ -169,6 +176,7 @@ cleanup:
         @catch (NSException *exception) {
             NSLog(@"%@", exception);
         }
+#endif
         
         
         debug(@"Compare failure!");
@@ -181,16 +189,16 @@ cleanup:
 
 @end
 
-NSRect FMPSDCGImageGetRect(CGImageRef img) {
+CGRect FMPSDCGImageGetRect(CGImageRef img) {
     if (!img) {
-        return NSZeroRect;
+        return CGRectZero;
     }
     
-    return NSMakeRect(0, 0, CGImageGetWidth(img), CGImageGetHeight(img));
+    return CGRectMake(0, 0, CGImageGetWidth(img), CGImageGetHeight(img));
 }
 
 
-CGContextRef FMPSDCGBitmapContextCreate(NSSize size, CGColorSpaceRef cs) {
+CGContextRef FMPSDCGBitmapContextCreate(CGSize size, CGColorSpaceRef cs) {
     
     FMAssert(cs);
     
@@ -201,8 +209,8 @@ CGContextRef FMPSDCGBitmapContextCreate(NSSize size, CGColorSpaceRef cs) {
     return context;
 }
 
-FMPSDPixel *FMPSDPixelAddressForPointInLocalContext(CGContextRef context, NSPoint p);
-FMPSDPixel *FMPSDPixelAddressForPointInLocalContext(CGContextRef context, NSPoint p) {
+FMPSDPixel *FMPSDPixelAddressForPointInLocalContext(CGContextRef context, CGPoint p);
+FMPSDPixel *FMPSDPixelAddressForPointInLocalContext(CGContextRef context, CGPoint p) {
     
     FMPSDPixel *basePtr   = CGBitmapContextGetData(context);
     
@@ -225,7 +233,7 @@ FMPSDPixel *FMPSDPixelAddressForPointInLocalContext(CGContextRef context, NSPoin
     return (FMPSDPixel *)(basePtr + pt);
 }
 
-FMPSDPixel FMPSDPixelForPointInContext(CGContextRef context, NSPoint point) {
+FMPSDPixel FMPSDPixelForPointInContext(CGContextRef context, CGPoint point) {
     
     FMAssert(CGBitmapContextGetData(context));
     
@@ -278,12 +286,11 @@ void FMPSDDecodeRLE(char *src, int sindex, int slen, char *dst, int dindex) {
 
 NSString * FMPSDStringForHFSTypeCode(OSType hfsFileTypeCode) {
     
-    NSString *s = NSFileTypeForHFSTypeCode(hfsFileTypeCode);
-    if ([s length] > 4) {
-        return [s substringWithRange:NSMakeRange(1, 4)];
-    }
-    
-    return @"";
+    return [NSString stringWithFormat:@"%c%c%c%c",
+                (hfsFileTypeCode >> 24) & 0xFF,
+                (hfsFileTypeCode >> 16) & 0xFF,
+                (hfsFileTypeCode >>  8) & 0xFF,
+                (hfsFileTypeCode      ) & 0xFF];
     
 }
 

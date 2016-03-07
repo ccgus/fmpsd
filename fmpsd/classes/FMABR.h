@@ -7,6 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <CoreGraphics/CoreGraphics.h>
 
 @class FMPSDDescriptor;
 
@@ -33,7 +34,7 @@
 @property (assign) CGFloat roundness;
 @property (assign) CGFloat hardness;
 @property (assign) CGFloat scatterJitter;
-@property (assign) uint32 blendMode;
+@property (assign) uint32_t blendMode;
 @property (assign) BOOL computed;
 
 - (void)setImage:(CGImageRef)image;
