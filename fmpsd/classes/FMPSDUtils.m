@@ -10,7 +10,12 @@
 #import "FMPSDUtils.h"
 #import <QuartzCore/QuartzCore.h>
 #import <ImageIO/ImageIO.h>
-#import <AppKit/NSImage.h>
+
+#if TARGET_OS_IPHONE
+#import <MobileCoreServices/MobileCoreServices.h>
+#else
+#import <AppKit/NSGraphics.h>   // for NSBeep
+#endif
 
 @implementation FMPSDUtils
 
@@ -70,9 +75,8 @@
     
     //CGColorSpaceRef linearCS = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGBLinear);
     
-    NSImage *compareTo = [[NSImage alloc] initByReferencingURL:pathURL];
-    NSBitmapImageRep *rep  = (id)[[compareTo representations] lastObject];
-    CGRect r = CGRectMake(0, 0, [rep pixelsWide], [rep pixelsHigh]);
+    CIImage *compareTo = [CIImage imageWithContentsOfURL:pathURL options:nil];
+    CGRect r = CGRectMake(0, 0, compareTo.extent.size.width, compareTo.extent.size.height);
     
     NSString *tempPath = [NSString stringWithFormat:@"/private/tmp/%@.tiff", [self stringWithUUID]];
     
@@ -163,6 +167,7 @@ cleanup:
     
     if (bad) {
         
+#if !TARGET_OS_IPHONE
     	NSBeep();
         
         @try {
@@ -171,6 +176,7 @@ cleanup:
         @catch (NSException *exception) {
             NSLog(@"%@", exception);
         }
+#endif
         
         
         debug(@"Compare failure!");
@@ -280,12 +286,11 @@ void FMPSDDecodeRLE(char *src, int sindex, int slen, char *dst, int dindex) {
 
 NSString * FMPSDStringForHFSTypeCode(OSType hfsFileTypeCode) {
     
-    NSString *s = NSFileTypeForHFSTypeCode(hfsFileTypeCode);
-    if ([s length] > 4) {
-        return [s substringWithRange:NSMakeRange(1, 4)];
-    }
-    
-    return @"";
+    return [NSString stringWithFormat:@"%c%c%c%c",
+                (hfsFileTypeCode >> 24) & 0xFF,
+                (hfsFileTypeCode >> 16) & 0xFF,
+                (hfsFileTypeCode >>  8) & 0xFF,
+                (hfsFileTypeCode      ) & 0xFF];
     
 }
 
