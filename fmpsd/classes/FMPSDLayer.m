@@ -919,7 +919,7 @@
         NSMutableData *d = [stream readDataOfLength:size];
         ret = [d mutableBytes];
         
-        FMAssert([d length] == size);
+        FMAssert([d length] == (NSUInteger)size);
         
     }
     
