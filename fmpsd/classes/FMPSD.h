@@ -15,11 +15,11 @@
 
 #ifdef DEBUG
     #define debug(...) NSLog(__VA_ARGS__)
-    #define PXAssert assert
+#ifndef FMAssert
     #define FMAssert assert
+#endif
 #else
     #define debug(...)
-    #define PXAssert(...)
     #define FMAssert(...)
 #endif
 
