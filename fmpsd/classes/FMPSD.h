@@ -63,6 +63,7 @@ extern BOOL FMPSDPrintDebugInfo;
     
     NSData *_colormapData;
     NSData *_iccProfile;
+    NSData *_slices;
     
     FMPSDLayer *_compositeLayer;
     
