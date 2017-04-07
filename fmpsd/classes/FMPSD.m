@@ -474,10 +474,12 @@ BOOL FMPSDPrintDebugInfo = NO;
         [resourceInfoStream writePascalString:@"" withPadding:2];
         [resourceInfoStream writeDataWithLengthHeader:[self resoultionData]];
         
-        [resourceInfoStream writeInt32:'8BIM'];
-        [resourceInfoStream writeInt16:1050]; // slices info
-        [resourceInfoStream writePascalString:@"" withPadding:2];
-        [resourceInfoStream writeDataWithLengthHeader:_slices];
+        if (_slices.length) {
+            [resourceInfoStream writeInt32:'8BIM'];
+            [resourceInfoStream writeInt16:1050]; // slices info
+            [resourceInfoStream writePascalString:@"" withPadding:2];
+            [resourceInfoStream writeDataWithLengthHeader:_slices];
+        }
         
         [resourceInfoStream writeInt32:'8BIM'];
         [resourceInfoStream writeInt16:1026]; // layer group info
