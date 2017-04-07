@@ -277,6 +277,9 @@ BOOL FMPSDPrintDebugInfo = NO;
             //debug(@"[Layers group information]: '%@'", [stream readDataOfLength:sizeofdata]);
             [stream skipLength:sizeofdata];
         }
+        else if (uID == 1050) { // slices
+            _slices = [stream readDataOfLength:sizeofdata];
+        }
         else {
             [stream skipLength:sizeofdata];
         }
@@ -470,6 +473,13 @@ BOOL FMPSDPrintDebugInfo = NO;
         [resourceInfoStream writeInt16:1005]; // resolution info.
         [resourceInfoStream writePascalString:@"" withPadding:2];
         [resourceInfoStream writeDataWithLengthHeader:[self resoultionData]];
+        
+        if (_slices) {
+            [resourceInfoStream writeInt32:'8BIM'];
+            [resourceInfoStream writeInt16:1050]; // slices info
+            [resourceInfoStream writePascalString:@"" withPadding:2];
+            [resourceInfoStream writeDataWithLengthHeader:_slices];
+        }
         
         [resourceInfoStream writeInt32:'8BIM'];
         [resourceInfoStream writeInt16:1026]; // layer group info
