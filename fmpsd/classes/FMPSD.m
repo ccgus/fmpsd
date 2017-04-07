@@ -474,7 +474,7 @@ BOOL FMPSDPrintDebugInfo = NO;
         [resourceInfoStream writePascalString:@"" withPadding:2];
         [resourceInfoStream writeDataWithLengthHeader:[self resoultionData]];
         
-        if (_slices.length) {
+        if (_slices) {
             [resourceInfoStream writeInt32:'8BIM'];
             [resourceInfoStream writeInt16:1050]; // slices info
             [resourceInfoStream writePascalString:@"" withPadding:2];
