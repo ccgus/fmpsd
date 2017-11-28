@@ -944,7 +944,7 @@
         FMPSDDebug(@"Reading row %d, channel id %d for %@ lineLengths ? %d pos %ld _channelLens[j]: %d", j, channelId, _layerName, (lineLengths != nil), [stream location], _channelLens[j]);
         
         if (_channelLens[j] == 2) {
-            debug(@"it's empty…");
+            FMPSDDebug(@"it's empty…");
             [stream skipLength:2];
             continue;
         }
