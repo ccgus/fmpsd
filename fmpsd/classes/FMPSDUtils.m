@@ -219,10 +219,9 @@ FMPSDPixel *FMPSDPixelAddressForPointInLocalContext(CGContextRef context, CGPoin
     }
     
     
-    CGColorSpaceRef cs= CGBitmapContextGetColorSpace(context);
     size_t height     = CGBitmapContextGetHeight(context);
     size_t bpr        = CGBitmapContextGetBytesPerRow(context);
-    size_t rwidth     = bpr / (CGColorSpaceGetNumberOfComponents(cs) + 1); // alpha
+    size_t rwidth     = bpr / sizeof(FMPSDPixel);
     
     
     //debug(@"CGColorSpaceGetNumberOfComponents(cs): %d", CGColorSpaceGetNumberOfComponents(cs));
