@@ -714,9 +714,11 @@
                 [self setTextDescriptor:[FMPSDDescriptor descriptorWithStream:stream psd:_psd]];
                 
                 uint16_t warpVersion = [stream readInt16];
+                (void)warpVersion;
                 FMAssert(warpVersion == 1);
                 
                 uint32_t descriptorVersion = [stream readInt32];
+                (void)descriptorVersion;
                 FMAssert(descriptorVersion == 16);
                 
                 [FMPSDDescriptor descriptorWithStream:stream psd:_psd];
