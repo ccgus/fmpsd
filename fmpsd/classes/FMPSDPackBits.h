@@ -7,4 +7,4 @@
 
 #import <Foundation/Foundation.h>
 
-NSData * FMPSDEncodedPackBits(char* src, size_t w, size_t h);
+NSData * FMPSDEncodedPackBits(char* src, size_t w, size_t h, size_t bytesLength);

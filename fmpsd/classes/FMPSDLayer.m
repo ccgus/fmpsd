@@ -330,8 +330,6 @@
         return;
     }
     
-    size_t len = _width * _height;
-    
     // BGRA. The little endian option flips things around.
     CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 8, _width * 4, CGImageGetColorSpace(_image), kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
     
@@ -353,7 +351,7 @@
         vImage_Error err = vImageUnpremultiplyData_BGRA8888(&srcBRGA, &srcBRGA, 0);
 
         if (err != kvImageNoError) {
-            NSLog(@"FMPSDLayer writeImageDataToStream: vImageUnpremultiplyData_RGBA8888 err: %ld", err);
+            NSLog(@"FMPSDLayer writeImageDataToStream: vImageUnpremultiplyData_BGRA8888 err: %ld", err);
         }
     }
     
@@ -368,25 +366,22 @@
 */
     
     int channelCount = 4;
-    vImage_Buffer panarBGRA[channelCount];
+    vImage_Buffer planarBGRA[channelCount];
     
     for (int i = 0; i < channelCount; i++) {
-        panarBGRA[i].data = malloc(sizeof(char) * len);
-        panarBGRA[i].width = _width;
-        panarBGRA[i].height = _height;
-        panarBGRA[i].rowBytes = _width;
+        vImageBuffer_Init(&planarBGRA[i], _height, _width, 8, kvImageNoFlags);
     }
     
-    vImage_Error err = vImageConvert_BGRA8888toPlanar8(&srcBRGA, &panarBGRA[0], &panarBGRA[1], &panarBGRA[2], &panarBGRA[3], kvImageNoFlags);
+    vImage_Error err = vImageConvert_BGRA8888toPlanar8(&srcBRGA, &planarBGRA[0], &planarBGRA[1], &planarBGRA[2], &planarBGRA[3], kvImageNoFlags);
     FMAssert(err == kvImageNoError);
     
-    NSData *packedB = FMPSDEncodedPackBits(panarBGRA[0].data, _width, _height);
-    NSData *packedG = FMPSDEncodedPackBits(panarBGRA[1].data, _width, _height);
-    NSData *packedR = FMPSDEncodedPackBits(panarBGRA[2].data, _width, _height);
-    NSData *packedA = FMPSDEncodedPackBits(panarBGRA[3].data, _width, _height);
+    NSData *packedB = FMPSDEncodedPackBits(planarBGRA[0].data, _width, _height, planarBGRA[0].rowBytes);
+    NSData *packedG = FMPSDEncodedPackBits(planarBGRA[1].data, _width, _height, planarBGRA[1].rowBytes);
+    NSData *packedR = FMPSDEncodedPackBits(planarBGRA[2].data, _width, _height, planarBGRA[2].rowBytes);
+    NSData *packedA = FMPSDEncodedPackBits(planarBGRA[3].data, _width, _height, planarBGRA[3].rowBytes);
     
     for (int i = 0; i < channelCount; i++) {
-        free(panarBGRA[i].data);
+        free(planarBGRA[i].data);
     }
     
     _packedDatas = [NSMutableArray arrayWithCapacity:4];
@@ -396,8 +391,6 @@
     [_packedDatas addObject:packedB];
     
     CGContextRelease(ctx);
-    
-    
     
     if (_mask) {
         
@@ -410,11 +403,9 @@
         CGContextDrawImage(maskCTX, CGRectMake(0, 0, _maskWidth, _maskHeight), _mask);
         CGContextRelease(maskCTX);
         
-        NSData *packedMask = FMPSDEncodedPackBits(m, _maskWidth, _maskHeight);
+        NSData *packedMask = FMPSDEncodedPackBits(m, _maskWidth, _maskHeight, _maskWidth);
         [_packedDatas addObject:packedMask];
     }
-    
-    
 }
 
 - (void)writeImageDataToStream:(FMPSDStream*)stream {
@@ -471,10 +462,6 @@
         size_t len      = _width * _height;
         size_t maskLen  = _maskWidth * _maskHeight;
         
-        char *r = malloc(sizeof(char) * len);
-        char *g = malloc(sizeof(char) * len);
-        char *b = malloc(sizeof(char) * len);
-        char *a = malloc(sizeof(char) * len);
         char *m = nil;
         
         CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 8, _width * 4, cs, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host);
@@ -487,38 +474,39 @@
         
         FMPSDPixel *c = CGBitmapContextGetData(ctx);
         
+        vImage_Buffer srcBRGA;
+        srcBRGA.data = c;
+        srcBRGA.width = _width;
+        srcBRGA.height = _height;
+        srcBRGA.rowBytes = CGBitmapContextGetBytesPerRow(ctx);
+        
+        
         // let's unpremultiply this guy - but not if we're a composite!
         if (!_isComposite) {
 
-            vImage_Buffer buf;
-            buf.data = c;
-            buf.width = _width;
-            buf.height = _height;
-            buf.rowBytes = CGBitmapContextGetBytesPerRow(ctx);
-            
-            vImage_Error err = vImageUnpremultiplyData_RGBA8888(&buf, &buf, 0);
+            vImage_Error err = vImageUnpremultiplyData_BGRA8888(&srcBRGA, &srcBRGA, 0);
             
             if (err != kvImageNoError) {
-                NSLog(@"FMPSDLayer writeImageDataToStream: vImageUnpremultiplyData_RGBA8888 err: %ld", err);
+                NSLog(@"FMPSDLayer writeImageDataToStream: vImageUnpremultiplyData_BGRA8888 err: %ld", err);
             }
             
         }
         
         
-        #pragma message "FIXME: use vimage for splitting things up into planes."
-        // split it up into planes
-        size_t j = 0;
-        while (j < len) {
+        //
+        int channelCount = 4;
+        vImage_Buffer planarBGRA[channelCount];
+        
+        for (int i = 0; i < channelCount; i++) {
+            vImageBuffer_Init(&planarBGRA[i], _height, _width, 8, kvImageNoFlags);
             
-            FMPSDPixel p = c[j];
-            
-            a[j] = p.a;
-            r[j] = p.r;
-            g[j] = p.g;
-            b[j] = p.b;
-            
-            j++;
+            // Reset rowBytes to width, since we don't have any padding when writing the composite.
+            planarBGRA[i].rowBytes = _width;
         }
+        
+        vImage_Error err = vImageConvert_BGRA8888toPlanar8(&srcBRGA, &planarBGRA[0], &planarBGRA[1], &planarBGRA[2], &planarBGRA[3], kvImageNoFlags);
+        FMAssert(err == kvImageNoError);
+        
         
         CGContextRelease(ctx);
         
@@ -536,20 +524,20 @@
         
         if (_isComposite) {
             
-            [stream writeChars:r length:len];
-            [stream writeChars:g length:len];
-            [stream writeChars:b length:len];
-            [stream writeChars:a length:len];
+            [stream writeChars:planarBGRA[2].data length:len];
+            [stream writeChars:planarBGRA[1].data length:len];
+            [stream writeChars:planarBGRA[0].data length:len];
+            [stream writeChars:planarBGRA[3].data length:len];
         }
         else {
             [stream writeInt16:0];
-            [stream writeChars:a length:len];
+            [stream writeChars:planarBGRA[2].data length:len];
             [stream writeInt16:0];
-            [stream writeChars:r length:len];
+            [stream writeChars:planarBGRA[1].data length:len];
             [stream writeInt16:0];
-            [stream writeChars:g length:len];
+            [stream writeChars:planarBGRA[0].data length:len];
             [stream writeInt16:0];
-            [stream writeChars:b length:len];
+            [stream writeChars:planarBGRA[3].data length:len];
             
             if (m) {
                 [stream writeInt16:0];
@@ -557,10 +545,9 @@
             }
         }
         
-        free(r);
-        free(g);
-        free(b);
-        free(a);
+        for (int i = 0; i < channelCount; i++) {
+            free(planarBGRA[i].data);
+        }
         
         if (m) {
             free(m);
@@ -1005,8 +992,6 @@
         //zipWithPrediction    = (encoding == 2);
         //zipWithoutPrediction = (encoding == 3);
         
-        //debug(@"rleEncoded: %d", rleEncoded);
-        //debug(@"lineLengths: %d", (int)lineLengths);
         
         if (rleEncoded) {
             if (lineLengths == nil) {
