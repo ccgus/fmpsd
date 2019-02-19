@@ -83,11 +83,69 @@ void makeComposite(NSString *path) {
     
 }
 
+void convertToPSD(NSString *path) {
+    
+    
+    CGImageSourceRef imageSourceRef = CGImageSourceCreateWithURL((CFURLRef)[NSURL fileURLWithPath:path], nil);
+    
+    if (!imageSourceRef) {
+        NSLog(@"Could not create image from %@", path);
+        return;
+    }
+    
+    CGImageRef imageRef = CGImageSourceCreateImageAtIndex(imageSourceRef, 0, (__bridge CFDictionaryRef)[NSDictionary dictionary]);
+    
+    if (!imageRef) {
+        CFRelease(imageSourceRef);
+        return;
+    }
+    
+    FMPSD *psd = [[FMPSD alloc] init];
+    
+    [psd setCompressLayerData:YES];
+    [psd setSavingCompositeImageRef:imageRef];
+    [psd setDepth:8];
+    
+    [psd setWidth:(uint32_t)CGImageGetWidth(imageRef)];
+    [psd setHeight:(uint32_t)CGImageGetHeight(imageRef)];
+    
+    FMPSDLayer *base = [psd baseLayerGroup];
+    
+    
+    FMPSDLayer *layer = [FMPSDLayer layerWithSize:CGSizeMake(CGImageGetWidth(imageRef), CGImageGetHeight(imageRef)) psd:psd];
+    
+    [layer setLayerName:[[path lastPathComponent] stringByDeletingPathExtension]];
+    [layer setOpacity:255];
+    [layer setVisible:YES];
+    [layer setTransparencyProtected:NO];
+    [layer setBlendMode:'norm'];
+    [layer setFrame:CGRectMake(0, 0, CGImageGetWidth(imageRef), CGImageGetHeight(imageRef))];
+    [layer setImage:imageRef];
+    
+    [base addLayerToGroup:layer];
+    
+    NSURL *writeURL = [NSURL fileURLWithPath:[path stringByAppendingPathExtension:@"psd"]];
+    [psd writeToFile:writeURL];
+    
+    CFRelease(imageSourceRef);
+    CGImageRelease(imageRef);
+    
+    
+    // Read it back in for fun.
+    NSError *err = nil;
+    [FMPSD imageWithContetsOfURL:writeURL error:&err];
+    
+    
+    
+    [[NSWorkspace sharedWorkspace] openURL:writeURL];
+}
+
 void printUsage(void) {
     
     printf("Usage: fmpsd [-sc] source_file.psd\n");
     printf("       -s splits out the layers as PNG\n");
     printf("       -c reads in the layers, generates a composite, and opens the result up.\n");
+    printf("       -w reads an image, and writes it as a PSD.\n");
 }
 
 int main(int argc, const char * argv[])
@@ -107,6 +165,9 @@ int main(int argc, const char * argv[])
         }
         else if ([cmd isEqualToString:@"-c"]) {
             makeComposite([NSString stringWithUTF8String:argv[2]]);
+        }
+        else if ([cmd isEqualToString:@"-w"]) {
+            convertToPSD([NSString stringWithUTF8String:argv[2]]);
         }
         else {
             printf("Unknown command: %s\n", [cmd UTF8String]);

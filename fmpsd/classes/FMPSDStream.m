@@ -39,8 +39,20 @@
     return me;
 }
 
++ (id)PSDStreamForReadingData:(NSData*)data {
+    
+    FMPSDStream *me = [[FMPSDStream alloc] initWithData:data];
+    
+    return me;
+}
 
-
+- (id)initWithData:(NSData*)data {
+    self = [super init];
+    if (self != nil) {
+        _inputDataStream = data;
+    }
+    return self;
+}
 
 - (id)initWithInputURL:(NSURL*)fileURL {
 	self = [super init];
@@ -78,7 +90,6 @@
 - (void)close {
     
     if (_outputStream) {
-        NSLog(@"wrote %ld", _location);
         [_outputStream close];
     }
     

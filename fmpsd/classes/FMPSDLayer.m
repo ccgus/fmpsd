@@ -11,11 +11,13 @@
 #import "FMPSDUtils.h"
 #import "FMPSDCIFilters.h"
 #import "FMPSDTextEngineParser.h"
+#import "FMPSDPackBits.h"
 #import <Accelerate/Accelerate.h>
 #import <ImageIO/ImageIO.h>
 
 
 @interface FMPSDLayer()
+@property (strong) NSMutableArray *packedDatas;
 - (BOOL)readLayerInfo:(FMPSDStream*)stream error:(NSError *__autoreleasing *)err;
 @end
 
@@ -184,22 +186,57 @@
     
     [stream writeInt16:_mask ? 5 : 4]; // channels.
     
-    // argb.  At least, that's the order PS writes it out in it seems.
-    // total of 26 bytes in case you're worndering.
-    // the + 2 is for the compression flag?
+    /*
+     Channel information. Six bytes per channel, consisting of:
+     2 bytes for Channel ID: 0 = red, 1 = green, etc.;
+     -1 = transparency mask; -2 = user supplied layer mask, -3 real user supplied layer mask (when both a user mask and a vector mask are present)
+     4 bytes for length of corresponding channel data. (**PSB** 8 bytes for length of corresponding channel data.) See See Channel image data for structure of channel data.
+     
+     
+     Compression. 0 = Raw Data, 1 = RLE compressed, 2 = ZIP without prediction, 3 = ZIP with prediction.
+     */
     
-    [stream writeSInt16:-1];
-    [stream writeInt32:(_width * _height) + 2];
-    [stream writeInt16:0];
-    [stream writeInt32:(_width * _height) + 2];
-    [stream writeInt16:1];
-    [stream writeInt32:(_width * _height) + 2];
-    [stream writeInt16:2];
-    [stream writeInt32:(_width * _height) + 2];
+    if ([[self psd] compressLayerData] && ![self isComposite]) {
+        
+        [self packBitmapDataForWriting];
+        
+        NSData *a = _packedDatas[0];
+        NSData *r = _packedDatas[1];
+        NSData *g = _packedDatas[2];
+        NSData *b = _packedDatas[3];
+        
+        [stream writeSInt16:-1];
+        [stream writeInt32:(uint32_t)([a length])];
+        [stream writeSInt16:0];
+        [stream writeInt32:(uint32_t)([r length])];
+        [stream writeSInt16:1];
+        [stream writeInt32:(uint32_t)([g length])];
+        [stream writeSInt16:2];
+        [stream writeInt32:(uint32_t)([b length])];
+
+        if (_mask) {
+            FMAssert([_packedDatas count] == 5);
+            NSData *m = _packedDatas[4];
+            [stream writeInt16:-2];
+            [stream writeInt32:(uint32_t)([m length])];
+        }
+        
+    }
+    else {
     
-    if (_mask) {
-        [stream writeInt16:-2];
-        [stream writeInt32:(_maskWidth * _maskHeight) + 2];
+        [stream writeSInt16:-1];
+        [stream writeInt32:(_width * _height) + 2];
+        [stream writeInt16:0];
+        [stream writeInt32:(_width * _height) + 2];
+        [stream writeInt16:1];
+        [stream writeInt32:(_width * _height) + 2];
+        [stream writeInt16:2];
+        [stream writeInt32:(_width * _height) + 2];
+        
+        if (_mask) {
+            [stream writeInt16:-2];
+            [stream writeInt32:(_maskWidth * _maskHeight) + 2];
+        }
     }
     
     [stream writeInt32:'8BIM'];
@@ -286,6 +323,99 @@
     }
 }
 
+- (void)packBitmapDataForWriting {
+    
+    if (_packedDatas) {
+        FMAssert(NO);
+        return;
+    }
+    
+    size_t len = _width * _height;
+    
+    // BGRA. The little endian option flips things around.
+    CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 8, _width * 4, CGImageGetColorSpace(_image), kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
+    
+    CGContextSetBlendMode(ctx, kCGBlendModeCopy);
+    CGContextDrawImage(ctx, CGRectMake(0, 0, _width, _height), _image);
+    
+    FMPSDPixel *c = CGBitmapContextGetData(ctx);
+    
+    vImage_Buffer srcBRGA;
+    srcBRGA.data = c;
+    srcBRGA.width = _width;
+    srcBRGA.height = _height;
+    srcBRGA.rowBytes = CGBitmapContextGetBytesPerRow(ctx);
+    
+    
+    // let's unpremultiply this guy - but not if we're a composite! That's stored differently. Obviously.
+    if (!_isComposite) {
+        
+        vImage_Error err = vImageUnpremultiplyData_BGRA8888(&srcBRGA, &srcBRGA, 0);
+
+        if (err != kvImageNoError) {
+            NSLog(@"FMPSDLayer writeImageDataToStream: vImageUnpremultiplyData_RGBA8888 err: %ld", err);
+        }
+    }
+    
+    /*
+     2 bytes: Compression. 0 = Raw Data, 1 = RLE compressed, 2 = ZIP without prediction, 3 = ZIP with prediction.
+     
+     Variable bytes: Image data.
+     If the compression code is 0, the image data is just the raw image data, whose size is calculated as (LayerBottom-LayerTop)* (LayerRight-LayerLeft) (from the first field in See Layer records).
+     If the compression code is 1, the image data starts with the byte counts for all the scan lines in the channel (LayerBottom-LayerTop) , with each count stored as a two-byte value.(**PSB** each count stored as a four-byte value.) The RLE compressed data follows, with each scan line compressed separately. The RLE compression is the same compression algorithm used by the Macintosh ROM routine PackBits, and the TIFF standard.
+     If the layer's size, and therefore the data, is odd, a pad byte will be inserted at the end of the row.
+     If the layer is an adjustment layer, the channel data is undefined (probably all white.)
+*/
+    
+    int channelCount = 4;
+    vImage_Buffer panarBGRA[channelCount];
+    
+    for (int i = 0; i < channelCount; i++) {
+        panarBGRA[i].data = malloc(sizeof(char) * len);
+        panarBGRA[i].width = _width;
+        panarBGRA[i].height = _height;
+        panarBGRA[i].rowBytes = _width;
+    }
+    
+    vImage_Error err = vImageConvert_BGRA8888toPlanar8(&srcBRGA, &panarBGRA[0], &panarBGRA[1], &panarBGRA[2], &panarBGRA[3], kvImageNoFlags);
+    FMAssert(err == kvImageNoError);
+    
+    NSData *packedB = FMPSDEncodedPackBits(panarBGRA[0].data, _width, _height);
+    NSData *packedG = FMPSDEncodedPackBits(panarBGRA[1].data, _width, _height);
+    NSData *packedR = FMPSDEncodedPackBits(panarBGRA[2].data, _width, _height);
+    NSData *packedA = FMPSDEncodedPackBits(panarBGRA[3].data, _width, _height);
+    
+    for (int i = 0; i < channelCount; i++) {
+        free(panarBGRA[i].data);
+    }
+    
+    _packedDatas = [NSMutableArray arrayWithCapacity:4];
+    [_packedDatas addObject:packedA];
+    [_packedDatas addObject:packedR];
+    [_packedDatas addObject:packedG];
+    [_packedDatas addObject:packedB];
+    
+    CGContextRelease(ctx);
+    
+    
+    
+    if (_mask) {
+        
+        size_t maskLen  = _maskWidth * _maskHeight;
+        char *m = malloc(sizeof(char) * maskLen);
+        CGColorSpaceRef cs = CGColorSpaceCreateWithName(kCGColorSpaceGenericGray);
+        CGContextRef maskCTX = CGBitmapContextCreate(m, _maskWidth, _maskHeight, 8, _maskWidth, cs, (CGBitmapInfo)kCGImageAlphaNone);
+        CGColorSpaceRelease(cs);
+        CGContextSetBlendMode(maskCTX, kCGBlendModeCopy);
+        CGContextDrawImage(maskCTX, CGRectMake(0, 0, _maskWidth, _maskHeight), _mask);
+        CGContextRelease(maskCTX);
+        
+        NSData *packedMask = FMPSDEncodedPackBits(m, _maskWidth, _maskHeight);
+        [_packedDatas addObject:packedMask];
+    }
+    
+    
+}
 
 - (void)writeImageDataToStream:(FMPSDStream*)stream {
     
@@ -312,132 +442,129 @@
         return;
     }
     
-    
-    CGColorSpaceRef cs = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
-    
     if (!_width || !_height) {
-        CGColorSpaceRelease(cs);
         return;
     }
     
-    size_t len      = _width * _height;
-    size_t maskLen  = _maskWidth * _maskHeight;
-    
-    char *r = malloc(sizeof(char) * len);
-    char *g = malloc(sizeof(char) * len);
-    char *b = malloc(sizeof(char) * len);
-    char *a = malloc(sizeof(char) * len);
-    char *m = nil;
-    
-    CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 8, _width * 4, cs, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host);
-    
-    CGColorSpaceRelease(cs);
-    
-    CGContextSetBlendMode(ctx, kCGBlendModeCopy);
-    CGContextDrawImage(ctx, CGRectMake(0, 0, _width, _height), _image);
-    
-    
-    FMPSDPixel *c = CGBitmapContextGetData(ctx);
-    
-    // let's unpremultiply this guy - but not if we're a composite!
-    if (!_isComposite) {
-
-// FIXME: delete the old unpremultiply code.
-//        Old code.  I'm keeping it around for a moment, just incase vImageUnpremultiplyData_RGBA8888 doesn't work out for some reason.
-//        dispatch_queue_t queue = dispatch_get_global_queue(0, DISPATCH_QUEUE_PRIORITY_HIGH);
-//        
-//        dispatch_apply(_height, queue, ^(size_t row) {
-//            
-//            FMPSDPixel *p = &c[_width * row];
-//            
-//            sint32 x = 0;
-//            while (x < _width) {
-//                
-//                if (p->a != 0) {
-//                    p->r = (p->r * 255 + p->a / 2) / p->a;
-//                    p->g = (p->g * 255 + p->a / 2) / p->a;
-//                    p->b = (p->b * 255 + p->a / 2) / p->a;
-//                }
-//                
-//                p++;
-//                x++;
-//            }
-//        });
+    if (_packedDatas && ![self isComposite]) {
         
-        vImage_Buffer buf;
-        buf.data = c;
-        buf.width = _width;
-        buf.height = _height;
-        buf.rowBytes = CGBitmapContextGetBytesPerRow(ctx);
+        [stream writeData:_packedDatas[0]];
+        [stream writeData:_packedDatas[1]];
+        [stream writeData:_packedDatas[2]];
+        [stream writeData:_packedDatas[3]];
         
-        vImage_Error err = vImageUnpremultiplyData_RGBA8888(&buf, &buf, 0);
-        
-        if (err != kvImageNoError) {
-            NSLog(@"FMPSDLayer writeImageDataToStream: vImageUnpremultiplyData_RGBA8888 err: %ld", err);
+        if (_mask) {
+            FMAssert([_packedDatas count] == 5);
         }
         
-    }
-    
-    
-    
-    // split it up into planes
-    size_t j = 0;
-    while (j < len) {
+        if ([_packedDatas count] == 5) {
+            FMAssert(_mask);
+            [stream writeData:_packedDatas[4]];
+        }
         
-        FMPSDPixel p = c[j];
-        
-        a[j] = p.a;
-        r[j] = p.r;
-        g[j] = p.g;
-        b[j] = p.b;
-        
-        j++;
-    }
-    
-    CGContextRelease(ctx);
-    
-    
-    if (_mask) {
-        
-        m   = malloc(sizeof(char) * maskLen);
-        cs  = CGColorSpaceCreateWithName(kCGColorSpaceGenericGray);
-        ctx = CGBitmapContextCreate(m, _maskWidth, _maskHeight, 8, _maskWidth, cs, (CGBitmapInfo)kCGImageAlphaNone);
-        CGColorSpaceRelease(cs);
-        CGContextDrawImage(ctx, CGRectMake(0, 0, _maskWidth, _maskHeight), _mask);
-        CGContextRelease(ctx);
-        
-    }
-    
-    if (_isComposite) {
-        
-        [stream writeChars:r length:len];
-        [stream writeChars:g length:len];
-        [stream writeChars:b length:len];
-        [stream writeChars:a length:len];
+        return;
     }
     else {
-        [stream writeInt16:0];
-        [stream writeChars:a length:len];
-        [stream writeInt16:0];
-        [stream writeChars:r length:len];
-        [stream writeInt16:0];
-        [stream writeChars:g length:len];
-        [stream writeInt16:0];
-        [stream writeChars:b length:len];
+        
+        CGColorSpaceRef cs = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
+        
+        size_t len      = _width * _height;
+        size_t maskLen  = _maskWidth * _maskHeight;
+        
+        char *r = malloc(sizeof(char) * len);
+        char *g = malloc(sizeof(char) * len);
+        char *b = malloc(sizeof(char) * len);
+        char *a = malloc(sizeof(char) * len);
+        char *m = nil;
+        
+        CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 8, _width * 4, cs, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host);
+        
+        CGColorSpaceRelease(cs);
+        
+        CGContextSetBlendMode(ctx, kCGBlendModeCopy);
+        CGContextDrawImage(ctx, CGRectMake(0, 0, _width, _height), _image);
+        
+        
+        FMPSDPixel *c = CGBitmapContextGetData(ctx);
+        
+        // let's unpremultiply this guy - but not if we're a composite!
+        if (!_isComposite) {
+
+            vImage_Buffer buf;
+            buf.data = c;
+            buf.width = _width;
+            buf.height = _height;
+            buf.rowBytes = CGBitmapContextGetBytesPerRow(ctx);
+            
+            vImage_Error err = vImageUnpremultiplyData_RGBA8888(&buf, &buf, 0);
+            
+            if (err != kvImageNoError) {
+                NSLog(@"FMPSDLayer writeImageDataToStream: vImageUnpremultiplyData_RGBA8888 err: %ld", err);
+            }
+            
+        }
+        
+        
+        #pragma message "FIXME: use vimage for splitting things up into planes."
+        // split it up into planes
+        size_t j = 0;
+        while (j < len) {
+            
+            FMPSDPixel p = c[j];
+            
+            a[j] = p.a;
+            r[j] = p.r;
+            g[j] = p.g;
+            b[j] = p.b;
+            
+            j++;
+        }
+        
+        CGContextRelease(ctx);
+        
+        
+        if (_mask) {
+            
+            m   = malloc(sizeof(char) * maskLen);
+            cs  = CGColorSpaceCreateWithName(kCGColorSpaceGenericGray);
+            ctx = CGBitmapContextCreate(m, _maskWidth, _maskHeight, 8, _maskWidth, cs, (CGBitmapInfo)kCGImageAlphaNone);
+            CGColorSpaceRelease(cs);
+            CGContextDrawImage(ctx, CGRectMake(0, 0, _maskWidth, _maskHeight), _mask);
+            CGContextRelease(ctx);
+            
+        }
+        
+        if (_isComposite) {
+            
+            [stream writeChars:r length:len];
+            [stream writeChars:g length:len];
+            [stream writeChars:b length:len];
+            [stream writeChars:a length:len];
+        }
+        else {
+            [stream writeInt16:0];
+            [stream writeChars:a length:len];
+            [stream writeInt16:0];
+            [stream writeChars:r length:len];
+            [stream writeInt16:0];
+            [stream writeChars:g length:len];
+            [stream writeInt16:0];
+            [stream writeChars:b length:len];
+            
+            if (m) {
+                [stream writeInt16:0];
+                [stream writeChars:m length:maskLen];
+            }
+        }
+        
+        free(r);
+        free(g);
+        free(b);
+        free(a);
         
         if (m) {
-            [stream writeInt16:0];
-            [stream writeChars:m length:maskLen];
+            free(m);
         }
-    }
-        
-    free(r);
-    free(g);
-    free(b);
-    free(a);
-    
-    if (m) {
-        free(m);
     }
 }
 

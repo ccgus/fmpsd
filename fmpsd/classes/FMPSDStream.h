@@ -19,6 +19,7 @@
 }
 
 + (id)PSDStreamForReadingURL:(NSURL*)url;
++ (id)PSDStreamForReadingData:(NSData*)data;
 + (id)PSDStreamForWritingToURL:(NSURL*)url;
 + (id)PSDStreamForWritingToMemory;
 

@@ -71,6 +71,7 @@ BOOL FMPSDPrintDebugInfo = NO;
     
     if (self != nil) {
         [self setBaseLayerGroup:[FMPSDLayer baseLayer]];
+        _compressLayerData = YES;
 	}
     
 	return self;

@@ -81,6 +81,7 @@ extern BOOL FMPSDPrintDebugInfo;
 @property (assign) uint16_t colorMode;
 @property (retain) FMPSDLayer *compositeLayer;
 @property (retain) FMPSDLayer *baseLayerGroup;
+@property (assign) BOOL compressLayerData;
 
 + (id)imageWithContetsOfURL:(NSURL*)fileURL error:(NSError *__autoreleasing *)err;
 + (id)imageWithContetsOfURL:(NSURL*)fileURL error:(NSError *__autoreleasing *)err printDebugInfo:(BOOL)debugInfo;

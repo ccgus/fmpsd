@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		467BE765182B258D008D7645 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467BE764182B258D008D7645 /* Accelerate.framework */; };
 		AEB344A817BE3ECB00335650 /* FMPSDTextEngineParser.m in Sources */ = {isa = PBXBuildFile; fileRef = AEB344A717BE3ECB00335650 /* FMPSDTextEngineParser.m */; };
+		CC16D874221B659A001646EB /* FMPSDPackBits.m in Sources */ = {isa = PBXBuildFile; fileRef = CC16D873221B659A001646EB /* FMPSDPackBits.m */; };
 		CC4381B3177251AF009D82C3 /* FMPSD.m in Sources */ = {isa = PBXBuildFile; fileRef = CC4381A8177251AF009D82C3 /* FMPSD.m */; };
 		CC4381B4177251AF009D82C3 /* FMPSDCIFilters.m in Sources */ = {isa = PBXBuildFile; fileRef = CC4381AA177251AF009D82C3 /* FMPSDCIFilters.m */; };
 		CC4381B5177251AF009D82C3 /* FMPSDDescriptor.m in Sources */ = {isa = PBXBuildFile; fileRef = CC4381AC177251AF009D82C3 /* FMPSDDescriptor.m */; };
@@ -40,7 +41,9 @@
 		467BE764182B258D008D7645 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		AEB344A617BE3ECB00335650 /* FMPSDTextEngineParser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FMPSDTextEngineParser.h; path = classes/FMPSDTextEngineParser.h; sourceTree = "<group>"; };
 		AEB344A717BE3ECB00335650 /* FMPSDTextEngineParser.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = FMPSDTextEngineParser.m; path = classes/FMPSDTextEngineParser.m; sourceTree = "<group>"; };
-		CC4381A7177251AF009D82C3 /* FMPSD.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FMPSD.h; path = classes/FMPSD.h; sourceTree = "<group>"; };
+		CC16D872221B659A001646EB /* FMPSDPackBits.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FMPSDPackBits.h; path = classes/FMPSDPackBits.h; sourceTree = "<group>"; };
+		CC16D873221B659A001646EB /* FMPSDPackBits.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = FMPSDPackBits.m; path = classes/FMPSDPackBits.m; sourceTree = "<group>"; };
+		CC4381A7177251AF009D82C3 /* FMPSD.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FMPSD.h; path = classes/FMPSD.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		CC4381A8177251AF009D82C3 /* FMPSD.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = FMPSD.m; path = classes/FMPSD.m; sourceTree = "<group>"; };
 		CC4381A9177251AF009D82C3 /* FMPSDCIFilters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FMPSDCIFilters.h; path = classes/FMPSDCIFilters.h; sourceTree = "<group>"; };
 		CC4381AA177251AF009D82C3 /* FMPSDCIFilters.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = FMPSDCIFilters.m; path = classes/FMPSDCIFilters.m; sourceTree = "<group>"; };
@@ -121,6 +124,8 @@
 			children = (
 				CC4381A7177251AF009D82C3 /* FMPSD.h */,
 				CC4381A8177251AF009D82C3 /* FMPSD.m */,
+				CC16D872221B659A001646EB /* FMPSDPackBits.h */,
+				CC16D873221B659A001646EB /* FMPSDPackBits.m */,
 				CC4381A9177251AF009D82C3 /* FMPSDCIFilters.h */,
 				CC4381AA177251AF009D82C3 /* FMPSDCIFilters.m */,
 				CC4381AB177251AF009D82C3 /* FMPSDDescriptor.h */,
@@ -199,6 +204,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CC16D874221B659A001646EB /* FMPSDPackBits.m in Sources */,
 				CC4381B3177251AF009D82C3 /* FMPSD.m in Sources */,
 				CC4381B5177251AF009D82C3 /* FMPSDDescriptor.m in Sources */,
 				CC4381B4177251AF009D82C3 /* FMPSDCIFilters.m in Sources */,
