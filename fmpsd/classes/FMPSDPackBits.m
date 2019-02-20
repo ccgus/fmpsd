@@ -152,6 +152,7 @@ static NSData * FMPSDEncodePackBitsPart(char* bytesIn, size_t bytesLength, off_t
 }
 
 NSData * FMPSDEncodedPackBits(char* src, size_t w, size_t h, size_t bytesLength) {
+    FMAssert(w == bytesLength); // Right now, passing bytesLength breaks things.
     NSMutableArray *lineData = [NSMutableArray arrayWithCapacity:h];
     for (size_t i = 0 ; i < h ; i++) {
         NSData *data = FMPSDEncodePackBitsPart(src + i * w, bytesLength, 1);

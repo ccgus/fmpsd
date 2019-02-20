@@ -370,6 +370,7 @@
     
     for (int i = 0; i < channelCount; i++) {
         vImageBuffer_Init(&planarBGRA[i], _height, _width, 8, kvImageNoFlags);
+        planarBGRA[i].rowBytes = _width;
     }
     
     vImage_Error err = vImageConvert_BGRA8888toPlanar8(&srcBRGA, &planarBGRA[0], &planarBGRA[1], &planarBGRA[2], &planarBGRA[3], kvImageNoFlags);
@@ -464,7 +465,7 @@
         
         char *m = nil;
         
-        CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 8, _width * 4, cs, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host);
+        CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 8, _width * 4, cs, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
         
         CGColorSpaceRelease(cs);
         
@@ -493,19 +494,40 @@
         }
         
         
-        //
         int channelCount = 4;
         vImage_Buffer planarBGRA[channelCount];
         
         for (int i = 0; i < channelCount; i++) {
             vImageBuffer_Init(&planarBGRA[i], _height, _width, 8, kvImageNoFlags);
-            
             // Reset rowBytes to width, since we don't have any padding when writing the composite.
             planarBGRA[i].rowBytes = _width;
         }
         
+#ifdef FMPSD_USE_PLANAR_CONVERSION
+        
         vImage_Error err = vImageConvert_BGRA8888toPlanar8(&srcBRGA, &planarBGRA[0], &planarBGRA[1], &planarBGRA[2], &planarBGRA[3], kvImageNoFlags);
         FMAssert(err == kvImageNoError);
+        
+#else
+        char *b = planarBGRA[0].data;
+        char *g = planarBGRA[1].data;
+        char *r = planarBGRA[2].data;
+        char *a = planarBGRA[3].data;
+        
+        // split it up into planes
+        size_t j = 0;
+        while (j < len) {
+            
+            FMPSDPixel p = c[j];
+            
+            a[j] = p.a;
+            r[j] = p.r;
+            g[j] = p.g;
+            b[j] = p.b;
+            
+            j++;
+        }
+#endif
         
         
         CGContextRelease(ctx);
@@ -1158,7 +1180,7 @@
     
     if (n) {
         
-        CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 8, _width * 4, [_psd colorSpace], kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host);
+        CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 8, _width * 4, [_psd colorSpace], kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
         
         FMPSDPixel *c = CGBitmapContextGetData(ctx);
         
