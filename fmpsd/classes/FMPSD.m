@@ -47,6 +47,7 @@ BOOL FMPSDPrintDebugInfo = NO;
     @try {
         
         if (![psd readDataAtURL:fileURL error:err]) {
+            debug(@"Failure reading %@", fileURL);
             debug(@"%s:%d Not a valid PSD, returning nil.", __FUNCTION__, __LINE__);
             return nil;
         }
