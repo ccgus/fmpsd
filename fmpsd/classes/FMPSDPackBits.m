@@ -177,9 +177,9 @@ NSData * FMPSDEncodedPackBits(char* src, size_t w, size_t h, size_t bytesLength)
         [outputStream writeData:line];
     }
     
-    if (totalLen % 2 == 1) {
-        [outputStream writeInt8:0];
-    }
+//    if (totalLen % 2 == 1) {
+//        [outputStream writeInt8:0];
+//    }
     
     [outputStream close];
     return [outputStream outputData];

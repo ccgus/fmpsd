@@ -198,6 +198,8 @@
     
     if ([[self psd] compressLayerData] && ![self isComposite]) {
         
+        FMPSDDebug(@"Writing compressed data info at location %ld (%@)", [stream location], _layerName);
+        
         [self packBitmapDataForWriting];
         
         NSData *a = _packedDatas[0];
@@ -205,6 +207,13 @@
         NSData *g = _packedDatas[2];
         NSData *b = _packedDatas[3];
         
+        
+        FMPSDDebug(@"packed a length %ld", [a length]);
+        FMPSDDebug(@"packed r length %ld", [r length]);
+        FMPSDDebug(@"packed g length %ld", [g length]);
+        FMPSDDebug(@"packed b length %ld", [b length]);
+        
+        // Note: The channel flag is already included in the packed channel data.
         [stream writeSInt16:-1];
         [stream writeInt32:(uint32_t)([a length])];
         [stream writeSInt16:0];
@@ -224,6 +233,7 @@
     }
     else {
     
+        // Note: The +2 is for the encoding flag.
         [stream writeSInt16:-1];
         [stream writeInt32:(_width * _height) + 2];
         [stream writeInt16:0];
@@ -440,9 +450,17 @@
     
     if (_packedDatas && ![self isComposite]) {
         
+        FMPSDDebug(@"Writing layer data at %ld", [stream location]);
+        
+        // Note: encoding data is already present in the packed channels.
+        
+        FMPSDDebug(@"-1 at %ld (%@)", [stream location], _layerName);
         [stream writeData:_packedDatas[0]];
+        FMPSDDebug(@"0 at %ld (%@)", [stream location], _layerName);
         [stream writeData:_packedDatas[1]];
+        FMPSDDebug(@"1 at %ld (%@)", [stream location], _layerName);
         [stream writeData:_packedDatas[2]];
+        FMPSDDebug(@"2 at %ld (%@)", [stream location], _layerName);
         [stream writeData:_packedDatas[3]];
         
         if (_mask) {
@@ -913,29 +931,29 @@
     //debug(@"width: %d", width);
     //debug(@"height: %d", height);
     
-    char *b = [[NSMutableData dataWithLength:sizeof(char) * (width * height)] mutableBytes];
-    char *s = [[NSMutableData dataWithLength:sizeof(char) * (width * 2)] mutableBytes];
+    char *dst = [[NSMutableData dataWithLength:sizeof(char) * (width * height)] mutableBytes];
+    char *src = [[NSMutableData dataWithLength:sizeof(char) * (width * 2)] mutableBytes];
     
     //BOOL d = planeNum == 0;
     
-    int pos = 0;
+    int dstIndex = 0;
     int lineIndex = planeNum * height;
     for (uint32_t i = 0; i < height; i++) {
-        uint16_t len = lineLengths[lineIndex++];
+        uint16_t slen = lineLengths[lineIndex++];
         
         //debug(@"%d: %d", i, len);
         
-        FMAssert(!(len > (width * 2)));
+        FMAssert(!(slen > (width * 2)));
         
-        [stream readChars:(char*)s maxLength:len];
+        [stream readChars:(char*)src maxLength:slen];
         
-        FMPSDDecodeRLE(s, 0, len, b, pos);
-        pos += width;
+        FMPSDDecodeRLE(src, 0, slen, dst, dstIndex);
+        dstIndex += width;
     }
     
     //NSLog(@"end location at parsePlaneCompressed: %ld for planeNum %d", [stream location], planeNum);
     
-    return b;
+    return dst;
 }
 
 - (char*)readPlaneFromStream:(FMPSDStream*)stream lineLengths:(uint16_t *)lineLengths needReadPlaneInfo:(BOOL)needReadPlaneInfo planeNum:(int)planeNum  error:(NSError *__autoreleasing *)err {
@@ -945,24 +963,28 @@
     //BOOL zipWithoutPrediction   = NO;
     //BOOL zipWithPrediction      = NO;
     
-    //long startLoc = [stream location];
+    long startLoc = [stream location];
     
     //debug(@"planeNum: %d, needReadPlaneInfo? %d", planeNum, needReadPlaneInfo);
     
     uint32_t thisLength = _channelLens[planeNum];
-    int16_t chanId     = _channelIds[planeNum];
+    int16_t chanId      = _channelIds[planeNum];
+    
+    long endLoc         = startLoc + thisLength;
+    
+    //FMPSDDebug(@"read length %ld for channel %d", thisLength, chanId);
     
     BOOL isMask       = (chanId == -2);
     
     if (needReadPlaneInfo) {
         uint16_t encoding = [stream readInt16];
         
+        FMPSDDebug(@"%ld Encoding is %d", [stream location], encoding);
+        
         //debug(@"encoding: %d", encoding);
         //NSLog(@"_channelLens: %d", _channelLens[_channels]);
         
-        thisLength -= 2;
-        
-        if (!thisLength) {
+        if (!(thisLength - 2)) {
             //debug(@"empty, returning early");
             return 0x00;
         }
@@ -1038,10 +1060,10 @@
     
     //debug(@"rleEncoded: %d", rleEncoded);
     
-    char *ret = nil;
+    char *channelBitmap = nil;
     
     if (rleEncoded) {
-        ret = (char*)[self parsePlaneCompressed:stream lineLengths:lineLengths planeNum:planeNum isMask:isMask];
+        channelBitmap = [self parsePlaneCompressed:stream lineLengths:lineLengths planeNum:planeNum isMask:isMask];
     }
     else {
         int32_t size = _width * _height;
@@ -1053,14 +1075,18 @@
         }
         
         NSMutableData *d = [stream readDataOfLength:size];
-        ret = [d mutableBytes];
+        channelBitmap = [d mutableBytes];
         
         FMAssert([d length] == (NSUInteger)size);
         
     }
     
+    FMPSDDebug(@"End of reading channel %d (length %ld). Expected end location: %ld actual %ld (actual length: %ld)", chanId, thisLength, endLoc, [stream location], [stream location] - startLoc);
+    if (!_isComposite && ![[[[NSThread currentThread] threadDictionary] objectForKey:@"TSTesting"] boolValue]) {
+        FMAssert(endLoc == [stream location]);
+    }
     
-    return ret;
+    return channelBitmap;
 }
 
 - (int)channelIdForRow:(int)row {
@@ -1077,7 +1103,7 @@
         
         int channelId = [self channelIdForRow:j];
         
-        FMPSDDebug(@"Reading row %d, channel id %d for %@ lineLengths ? %d pos %ld _channelLens[j]: %d", j, channelId, _layerName, (lineLengths != nil), [stream location], _channelLens[j]);
+        FMPSDDebug(@"Reading row %d, channel id %d for \"%@\" has lineLengths: %d pos %ld _channelLens[j]: %d", j, channelId, _layerName, (lineLengths != nil), [stream location], _channelLens[j]);
         
         if (_channelLens[j] == 2) {
             FMPSDDebug(@"it's empty…");
@@ -1446,6 +1472,7 @@
     _channelIds[1] = 1;
     _channelIds[2] = 2;
     _channelIds[3] = -1;
+    _isComposite = YES;
 }
 
 @end

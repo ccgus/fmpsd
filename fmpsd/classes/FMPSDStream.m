@@ -138,7 +138,7 @@
 
 - (uint16_t)readInt16 {
     
-    unsigned char buffer[2];
+    uint8_t buffer[2];
     uint16_t value = 0;
     
     if ([self read:buffer maxLength:2] == 2) {
@@ -152,7 +152,7 @@
 
 - (uint32_t)readInt32 {
     
-    unsigned char buffer[4];
+    uint8_t buffer[4];
     uint32_t value = -1;
     
     if ([self read:buffer maxLength:4] == 4) {
@@ -168,11 +168,13 @@
 
 - (int32_t)readSInt32 {
     
-    unsigned char buffer[4];
+    uint8_t buffer[4];
     int32_t value = -1;
     
     if ([self read:buffer maxLength:4] == 4) {
-        value  = buffer[0] << 24;
+        // Why the cast?
+        // Left shift of 255 by 24 places cannot be represented in type 'int'
+        value  = ((uint32_t)buffer[0]) << 24;
         value |= buffer[1] << 16;
         value |= buffer[2] << 8;
         value |= buffer[3];

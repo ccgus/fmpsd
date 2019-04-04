@@ -411,7 +411,7 @@ BOOL FMPSDPrintDebugInfo = NO;
     
     BOOL rle = [stream readInt16] == 1;
     
-    FMPSDDebug(@"rle composite: %d", rle);
+    FMPSDDebug(@"Reading composite, is rle? %d", rle);
     
     if (rle) {
         uint32_t nLines = _height * _channels;
