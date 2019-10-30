@@ -117,7 +117,7 @@ BOOL FMPSDPrintDebugInfo = NO;
     
     if (_colorSpace) {
         
-        NSData *d = (__bridge_transfer NSData*)CGColorSpaceCopyICCProfile(_colorSpace);
+        NSData *d = (__bridge_transfer NSData*)CGColorSpaceCopyICCData(_colorSpace);
         
         if (d) {
             return d;
