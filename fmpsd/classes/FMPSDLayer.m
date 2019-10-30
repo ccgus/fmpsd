@@ -1083,6 +1083,14 @@
     
     FMPSDDebug(@"End of reading channel %d (length %ld). Expected end location: %ld actual %ld (actual length: %ld)", chanId, thisLength, endLoc, [stream location], [stream location] - startLoc);
     if (!_isComposite && ![[[[NSThread currentThread] threadDictionary] objectForKey:@"TSTesting"] boolValue]) {
+        
+        // Catch cases where teh stream was written out a bit more orderly than we expected.
+        // I don't think this is documented anywhere, but Photoshop makes this correction, so maybe FMPSD should as well?
+        // Gus: Check out Case 34435 for an example (it's too big of a PSD to put into the repo for testing).
+        if (([stream location] % 2 == 1) && (endLoc - [stream location] == 1)) {
+            [stream readInt8];
+        }
+        
         FMAssert(endLoc == [stream location]);
     }
     
