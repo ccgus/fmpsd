@@ -73,6 +73,7 @@ BOOL FMPSDPrintDebugInfo = NO;
     if (self != nil) {
         [self setBaseLayerGroup:[FMPSDLayer baseLayer]];
         _compressLayerData = YES;
+        _dpi = 72.0;
 	}
     
 	return self;
@@ -102,6 +103,30 @@ BOOL FMPSDPrintDebugInfo = NO;
 
 - (NSData*)resoultionData {
     
+#define FMPSD_WRITE_RESOLUTION_INFO 1
+#ifdef FMPSD_WRITE_RESOLUTION_INFO
+    FMPSDStream *writeStream = [FMPSDStream PSDStreamForWritingToMemory];
+
+    int32_t  horResolutionInt   = _dpi * 65536.0;
+    uint16_t horResolutionUnit  = 1; // 1 is ppinch, 2 is ppcentimeter
+    uint16_t widthUnit          = 1; // 1 in, 2 cm, 3 pt, 4 picas, 5 columns
+    int32_t  vertResolutionInt  = _dpi * 65536.0;
+    uint16_t vertResolutionUnit = 1;
+    uint16_t heightUnit         = 1;
+    
+    [writeStream writeSInt32:horResolutionInt];
+    [writeStream writeInt16:horResolutionUnit];
+    [writeStream writeInt16:widthUnit];
+    
+    [writeStream writeSInt32:vertResolutionInt];
+    [writeStream writeInt16:vertResolutionUnit];
+    [writeStream writeInt16:heightUnit];
+    
+    FMAssert([writeStream location] == 16);
+    
+    return [writeStream outputData];
+    
+#else
     // we're always 72 right now.
     
     unsigned char resInfo[] = {
@@ -111,6 +136,7 @@ BOOL FMPSDPrintDebugInfo = NO;
     FMAssert(sizeof(resInfo) == 16);
     
     return [NSData dataWithBytes:resInfo length:sizeof(resInfo)];
+#endif
 }
 
 - (NSData*)iccProfile {
@@ -269,8 +295,31 @@ BOOL FMPSDPrintDebugInfo = NO;
             sizeofdata ++;
         }
         
-        if (uID == 1005) { // resolution info.
-            /*NSData *d = */[stream readDataOfLength:sizeofdata];
+        if (uID == 1005) { // resolution info (search on 0x3ed as well for info).
+            NSData *d = [stream readDataOfLength:sizeofdata];
+            
+            if ([d length] == 16) {
+                FMPSDStream *resInfoStream = [FMPSDStream PSDStreamForReadingData:d];
+                
+                int32_t  horResolutionInt   = [resInfoStream readSInt32];
+                uint16_t horResolutionUnit  = [resInfoStream readInt16]; // 1 is ppinch, 2 is ppcentimeter
+                uint16_t widthUnit          = [resInfoStream readInt16]; // 1 in, 2 cm, 3 pt, 4 picas, 5 columns
+                int32_t  vertResolutionInt  = [resInfoStream readSInt32];
+                uint16_t vertResolutionUnit = [resInfoStream readInt16];
+                uint16_t heightUnit         = [resInfoStream readInt16];
+                
+                (void)horResolutionUnit; // This is informational only. FMPSD doesn't capture this info.
+                (void)vertResolutionUnit;
+                (void)heightUnit;
+                (void)widthUnit;
+                
+                float horResolution  = horResolutionInt  / 65536.0;
+                float vertResolution = vertResolutionInt / 65536.0;
+                
+                (void)vertResolution;
+                _dpi = horResolution;
+            }
+            
         }
         else if (uID == 1039) { // icc profile.
             _iccProfile = [stream readDataOfLength:sizeofdata];

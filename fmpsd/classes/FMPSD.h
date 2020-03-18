@@ -79,6 +79,7 @@ extern BOOL FMPSDPrintDebugInfo;
 @property (assign) uint32_t height;
 @property (assign) uint16_t depth;
 @property (assign) uint16_t colorMode;
+@property (assign) float dpi;
 @property (retain) FMPSDLayer *compositeLayer;
 @property (retain) FMPSDLayer *baseLayerGroup;
 @property (assign) BOOL compressLayerData;

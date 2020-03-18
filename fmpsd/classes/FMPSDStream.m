@@ -385,6 +385,13 @@
     _location += 2;
 }
 
+
+- (void)writeSInt32:(int32_t)value {
+    int32_t writeV = CFSwapInt32HostToBig(value);
+    [_outputStream write:(const uint8_t *)&writeV maxLength:4];
+    _location += 4;
+}
+
 - (void)writeInt8:(uint8_t)value {
     [_outputStream write:(const uint8_t *)&value maxLength:1];
     _location += 1;

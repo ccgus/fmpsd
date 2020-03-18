@@ -46,11 +46,14 @@
 - (long)location;
 - (void)seekToLocation:(long)newLocation;
 
-- (void)writeInt64:(uint64_t)value;
-- (void)writeInt32:(uint32_t)value;
-- (void)writeInt16:(uint16_t)value;
-- (void)writeSInt16:(int16_t)value;
 - (void)writeInt8:(uint8_t)value;
+- (void)writeInt16:(uint16_t)value;
+- (void)writeInt32:(uint32_t)value;
+- (void)writeInt64:(uint64_t)value;
+
+- (void)writeSInt16:(int16_t)value;
+- (void)writeSInt32:(int32_t)value;
+
 - (void)writeData:(NSData*)data;
 - (void)writeChars:(char*)chars length:(size_t)length;
 - (void)writeDataWithLengthHeader:(NSData*)data;
