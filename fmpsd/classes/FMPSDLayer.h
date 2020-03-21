@@ -69,11 +69,11 @@
 @property (assign) BOOL printDebugInfo;
 @property (assign) uint32_t blendMode;
 @property (retain) NSDictionary *textProperties;
+@property CGImageRef image;
 
-
-+ (id)layerWithStream:(FMPSDStream*)stream psd:(FMPSD*)psd error:(NSError *__autoreleasing *)err;
-+ (id)layerWithSize:(CGSize)s psd:(FMPSD*)psd;
-+ (id)baseLayer;
++ (instancetype)layerWithStream:(FMPSDStream*)stream psd:(FMPSD*)psd error:(NSError *__autoreleasing *)err;
++ (instancetype)layerWithSize:(CGSize)s psd:(FMPSD*)psd;
++ (instancetype)baseLayer;
 
 - (BOOL)readImageDataFromStream:(FMPSDStream*)stream lineLengths:(uint16_t *)lineLengths needReadPlanInfo:(BOOL)needsPlaneInfo error:(NSError *__autoreleasing *)err;
 - (void)writeLayerInfoToStream:(FMPSDStream*)stream;
@@ -83,8 +83,6 @@
 - (void)setFrame:(CGRect)frame;
 - (void)setMaskFrame:(CGRect)frame;
 - (CGRect)maskFrame;
-- (CGImageRef)image;
-- (void)setImage:(CGImageRef)anImage;
 - (CGImageRef)mask;
 - (void)setMask:(CGImageRef)value;
 - (uint8_t)maskColor;

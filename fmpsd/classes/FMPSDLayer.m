@@ -23,7 +23,7 @@
 
 @implementation FMPSDLayer
 
-+ (id)baseLayer {
++ (instancetype)baseLayer {
     
     FMPSDLayer *ret = [[self alloc] init];
     
@@ -35,7 +35,7 @@
     return ret;
 }
 
-+ (id)layerWithSize:(CGSize)s psd:(FMPSD*)psd {
++ (instancetype)layerWithSize:(CGSize)s psd:(FMPSD*)psd {
     
     FMPSDLayer *ret = [[self alloc] init];
     [ret setPsd:psd];
@@ -50,7 +50,7 @@
     return ret;
 }
 
-+ (id)layerWithStream:(FMPSDStream*)stream psd:(FMPSD*)psd error:(NSError *__autoreleasing *)err {
++ (instancetype)layerWithStream:(FMPSDStream*)stream psd:(FMPSD*)psd error:(NSError *__autoreleasing *)err {
     
     FMPSDLayer *ret = [[self alloc] init];
     
@@ -64,12 +64,12 @@
 }
 
 - (id)init {
-	self = [super init];
-	if (self != nil) {
-		_visible = YES;
+    self = [super init];
+    if (self != nil) {
+        _visible = YES;
         _opacity = 255;
         _blendMode = 'norm';
-	}
+    }
 	return self;
 }
 
@@ -300,6 +300,11 @@
         
         FMAssert((([extraDataStream location] - loc) % 4) == 0); // padding has to be to 4!
         
+        
+    // Additional Layer Information
+        
+        // Section divider setting:
+        
         if (_isGroup) {
             [extraDataStream writeInt32:'8BIM'];
             [extraDataStream writeInt32:'lsct'];
@@ -329,7 +334,10 @@
         
         free(buffer);
         
+    // Write and Close
+        
         [stream writeDataWithLengthHeader:[extraDataStream outputData]];
+        [extraDataStream close];
     }
 }
 
@@ -339,13 +347,30 @@
         FMAssert(NO);
         return;
     }
-    
+    CGImageRef image = CGImageRetain(_image);
+    CGColorSpaceRef colorSpace = CGColorSpaceRetain(CGImageGetColorSpace(image));
+    if (CGColorSpaceGetNumberOfComponents(colorSpace) < 3) {
+        CGImageRef oldImage = image;
+        CGColorSpaceRelease(colorSpace);
+        colorSpace = CGColorSpaceCreateDeviceRGB();
+        image = CGImageCreateCopyWithColorSpace(image, colorSpace);
+        CGImageRelease(oldImage);
+    }
     // BGRA. The little endian option flips things around.
-    CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 8, _width * 4, CGImageGetColorSpace(_image), kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
+    CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 8, _width * 4, colorSpace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
+
+    CGColorSpaceRelease(colorSpace);
+
+    if (!ctx) {
+        CGImageRelease(image);
+        FMAssert(NO);
+        return;
+    }
     
     CGContextSetBlendMode(ctx, kCGBlendModeCopy);
-    CGContextDrawImage(ctx, CGRectMake(0, 0, _width, _height), _image);
-    
+    CGContextDrawImage(ctx, CGRectMake(0, 0, _width, _height), image);
+    CGImageRelease(image);
+
     FMPSDPixel *c = CGBitmapContextGetData(ctx);
     
     vImage_Buffer srcBRGA;
@@ -678,8 +703,8 @@
         long startExtraLocation   = [stream location];
         
         // LAYER MASK / ADJUSTMENT LAYER DATA
-		// Size of the data: 36, 20, or 0. If zero, the following fields are not
-		// present
+        // Size of the data: 36, 20, or 0. If zero, the following fields are not
+        // present
         
         uint32_t lenOfMask = [stream readInt32];
         
@@ -868,11 +893,11 @@
                 [self setTextDescriptor:[FMPSDDescriptor descriptorWithStream:stream psd:_psd]];
                 
                 uint16_t warpVersion = [stream readInt16];
-                (void)warpVersion;
+                FMUnused(warpVersion);
                 FMAssert(warpVersion == 1);
                 
                 uint32_t descriptorVersion = [stream readInt32];
-                (void)descriptorVersion;
+                FMUnused(descriptorVersion);
                 FMAssert(descriptorVersion == 16);
                 
                 [FMPSDDescriptor descriptorWithStream:stream psd:_psd];
@@ -984,7 +1009,9 @@
         //debug(@"encoding: %d", encoding);
         //NSLog(@"_channelLens: %d", _channelLens[_channels]);
         
-        if (!(thisLength - 2)) {
+        thisLength -= 2;
+        
+        if (!thisLength) {
             //debug(@"empty, returning early");
             return 0x00;
         }
@@ -1222,13 +1249,14 @@
         // OK, we're going to de-plane our image, and premultiply it as well.
         dispatch_queue_t queue = dispatch_get_global_queue(0, DISPATCH_QUEUE_PRIORITY_HIGH);
         
+        int32_t width = _width;
         dispatch_apply(_height, queue, ^(size_t row) {
             
-            FMPSDPixel *p = &c[_width * row];
+            FMPSDPixel *p = &c[width * row];
             
-            size_t planeStart = (row * _width);
+            size_t planeStart = (row * width);
             int32_t x = 0;
-            while (x < _width) {
+            while (x < width) {
                 
                 size_t planeLoc = planeStart + x;
                 
@@ -1441,9 +1469,9 @@
 
 - (void)writeToFileAsPSD:(NSString *)path {
     
-	CGImageDestinationRef destination = CGImageDestinationCreateWithURL((__bridge CFURLRef)[NSURL fileURLWithPath:path], (CFStringRef)@"com.adobe.photoshop-image", 1, NULL);
-	CGImageDestinationAddImage(destination, _image, (__bridge CFDictionaryRef)[NSDictionary dictionary]);
-	CGImageDestinationFinalize(destination);
+    CGImageDestinationRef destination = CGImageDestinationCreateWithURL((__bridge CFURLRef)[NSURL fileURLWithPath:path], (CFStringRef)@"com.adobe.photoshop-image", 1, NULL);
+    CGImageDestinationAddImage(destination, _image, (__bridge CFDictionaryRef)[NSDictionary dictionary]);
+    CGImageDestinationFinalize(destination);
     CFRelease(destination);
 }
 

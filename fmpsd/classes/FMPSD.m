@@ -33,7 +33,7 @@ BOOL FMPSDPrintDebugInfo = NO;
 @synthesize colorMode=_colorMode;
 @synthesize compositeLayer=_compositeLayer;
 
-+ (id)imageWithContetsOfURL:(NSURL*)fileURL error:(NSError *__autoreleasing *)err printDebugInfo:(BOOL)debugInfo {
++ (instancetype)imageWithContentsOfURL:(NSURL*)fileURL error:(NSError *__autoreleasing *)err printDebugInfo:(BOOL)debugInfo {
     
     if (![[[NSFileManager alloc] init] fileExistsAtPath:[fileURL path]]) {
         return nil;
@@ -62,8 +62,8 @@ BOOL FMPSDPrintDebugInfo = NO;
     
 }
 
-+ (id)imageWithContetsOfURL:(NSURL*)fileURL error:(NSError *__autoreleasing *)err {
-    return [self imageWithContetsOfURL:fileURL error:err printDebugInfo:NO];
++ (instancetype)imageWithContentsOfURL:(NSURL*)fileURL error:(NSError *__autoreleasing *)err {
+    return [self imageWithContentsOfURL:fileURL error:err printDebugInfo:NO];
 }
 
 
@@ -178,6 +178,18 @@ BOOL FMPSDPrintDebugInfo = NO;
     }
     
     return _colorSpace;
+}
+
+- (void)setColorSpace:(CGColorSpaceRef)colorSpace {
+	
+    if (_colorSpace) {
+        CGColorSpaceRelease(_colorSpace);
+        _colorSpace = nil;
+    }
+	
+    if (colorSpace) {
+        _colorSpace = CGColorSpaceRetain(colorSpace);
+    }
 }
 
 - (void)loadColorSpaceFromURL:(NSURL*)url {
@@ -495,6 +507,9 @@ BOOL FMPSDPrintDebugInfo = NO;
     
     FMPSDStream *stream = [FMPSDStream PSDStreamForWritingToURL:fileURL];
     
+    
+    // File Header Section
+    
     [stream writeInt32:'8BPS']; // sig
     [stream writeInt16:1]; // version
     
@@ -509,8 +524,14 @@ BOOL FMPSDPrintDebugInfo = NO;
     [stream writeInt16:_depth];
     [stream writeInt16:FMPSDRGBMode];
     
+    
+    // Color Mode Data Section
+    
     [stream writeInt32:0]; // colormap data.
     //[stream writeDataWithLengthHeader:_colormapData];
+    
+    
+    // Image Resources Section
     
     {   // time for the image resource blocks!
         FMPSDStream *resourceInfoStream = [FMPSDStream PSDStreamForWritingToMemory];
@@ -542,8 +563,10 @@ BOOL FMPSDPrintDebugInfo = NO;
             [groupInfo writeInt16:0];
         }
         [resourceInfoStream writeDataWithLengthHeader:[groupInfo outputData]];
-        
+        [groupInfo close];
+
         [stream writeDataWithLengthHeader:[resourceInfoStream outputData]];
+        [resourceInfoStream close];
     }
     
     
@@ -555,7 +578,7 @@ BOOL FMPSDPrintDebugInfo = NO;
         FMPSDStream *layerInfoStream = [FMPSDStream PSDStreamForWritingToMemory];
         
         // the number of layers.
-        [layerInfoStream writeSInt16:([_baseLayerGroup countOfSubLayers] * -1)];
+        [layerInfoStream writeSInt16:[_baseLayerGroup countOfSubLayers]];
         
         for (FMPSDLayer *layer in [[_baseLayerGroup layers] reverseObjectEnumerator]) {
             [layer writeLayerInfoToStream:layerInfoStream];
@@ -571,6 +594,7 @@ BOOL FMPSDPrintDebugInfo = NO;
         }
         
         [layerAndGlobalMaskStream writeDataWithLengthHeader:[layerInfoStream outputData]];
+        [layerInfoStream close];
     }
     
     [layerAndGlobalMaskStream writeInt32:0]; // Length of global layer mask info section.
@@ -586,6 +610,9 @@ BOOL FMPSDPrintDebugInfo = NO;
     
     [stream writeDataWithLengthHeader:[layerAndGlobalMaskStream outputData]];
     layerAndGlobalMaskStream = nil;
+    
+    
+    // Image Data Section
     
     FMPSDLayer *composite = [FMPSDLayer layerWithSize:CGSizeMake(_width, _height) psd:self];
     
@@ -669,7 +696,7 @@ BOOL FMPSDPrintDebugInfo = NO;
     NSLog(@"width: %d", [psd width]);
     NSLog(@"height: %d", [psd height]);
     NSLog(@"version: %d", [psd version]);
-    NSLog(@"first group layer count: %ld", [[[psd baseLayerGroup] layers] count]);
+    NSLog(@"first group layer count: %ld", (unsigned long) [[[psd baseLayerGroup] layers] count]);
     
 }
 

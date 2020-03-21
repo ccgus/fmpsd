@@ -39,12 +39,12 @@
 - (NSString*)parseTextTag {
     
     uint8_t op = [self nextChar];
-    (void)op;
     FMAssert(op == '(');
+    FMUnused(op);
     
     uint16_t bom = [self nextShort];
-    (void)bom;
     FMAssert(bom == 0xfeff);
+    FMUnused(bom);
     
     NSMutableString *ret = [NSMutableString string];
     
@@ -243,7 +243,7 @@
     
     [self scanToChar:'<'];
     char c = [self nextChar];
-    (void)c;
+    FMUnused(c);
     FMAssert(c == '<');
     
 }
@@ -251,7 +251,7 @@
 - (void)scanToDoubleGreaterThan {
     [self scanToChar:'>'];
     char c = [self nextChar];
-    (void)c;
+    FMUnused(c);
     FMAssert(c == '>');
 }
 
@@ -267,7 +267,8 @@
     NSMutableDictionary *currentDict = [NSMutableDictionary dictionary];
     
     char c = [self nextChar];
-    (void)c;
+    FMUnused(c);
+    
     FMAssert(c == '[');
     
     NSString *restOfLine = [self scanToEndOfLine];
@@ -376,7 +377,7 @@
     // dicts start out with a << on their own line, and end with a >>?
     
     NSString *startB = [self scanNextWord];
-    (void)startB;
+    FMUnused(startB);
     FMAssert([startB isEqualToString:@"<<"]);
     
     NSString *key = [self scanNextWord];

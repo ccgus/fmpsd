@@ -286,10 +286,10 @@ void FMPSDDecodeRLE(char *src, int sindex, int slen, char *dst, int dindex) {
 NSString * FMPSDStringForHFSTypeCode(OSType hfsFileTypeCode) {
     
     return [NSString stringWithFormat:@"%c%c%c%c",
-                (hfsFileTypeCode >> 24) & 0xFF,
-                (hfsFileTypeCode >> 16) & 0xFF,
-                (hfsFileTypeCode >>  8) & 0xFF,
-                (hfsFileTypeCode      ) & 0xFF];
+                (int) (hfsFileTypeCode >> 24) & 0xFF,
+                (int) (hfsFileTypeCode >> 16) & 0xFF,
+                (int) (hfsFileTypeCode >>  8) & 0xFF,
+                (int) (hfsFileTypeCode      ) & 0xFF];
     
 }
 

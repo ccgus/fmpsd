@@ -23,6 +23,9 @@
     #define FMAssert(...)
 #endif
 
+#define FMUnused(x) (void)x
+    // For tagging unused variable (in release version) to avoid warning
+
 
 #define TSDebug(...) { if (TSDebugOn) { NSLog(__VA_ARGS__); } }
 
@@ -84,8 +87,8 @@ extern BOOL FMPSDPrintDebugInfo;
 @property (retain) FMPSDLayer *baseLayerGroup;
 @property (assign) BOOL compressLayerData;
 
-+ (id)imageWithContetsOfURL:(NSURL*)fileURL error:(NSError *__autoreleasing *)err;
-+ (id)imageWithContetsOfURL:(NSURL*)fileURL error:(NSError *__autoreleasing *)err printDebugInfo:(BOOL)debugInfo;
++ (instancetype)imageWithContentsOfURL:(NSURL*)fileURL error:(NSError *__autoreleasing *)err;
++ (instancetype)imageWithContentsOfURL:(NSURL*)fileURL error:(NSError *__autoreleasing *)err printDebugInfo:(BOOL)debugInfo;
 + (void)printDebugInfoForFileAtURL:(NSURL*)fileURL;
 
 - (uint16_t)version;
@@ -96,7 +99,7 @@ extern BOOL FMPSDPrintDebugInfo;
 
 - (void)setSavingCompositeImageRef:(CGImageRef)img;
 
-- (CGColorSpaceRef)colorSpace;
+@property CGColorSpaceRef colorSpace;
 
 @end
 
