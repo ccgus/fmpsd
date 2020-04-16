@@ -112,7 +112,9 @@ extern BOOL FMPSDPrintDebugInfo;
     
     if (_version < 6) {
         NSLog(@"FMABR Doesn't support brush versions less than 6");
-        *err = [NSError errorWithDomain:@"8BPS" code:1 userInfo:@{NSLocalizedDescriptionKey: @"ABR format is too old"}];
+        if (err) {
+            *err = [NSError errorWithDomain:@"8BPS" code:1 userInfo:@{NSLocalizedDescriptionKey: @"ABR format is too old"}];
+        }
         return NO;
     }
     

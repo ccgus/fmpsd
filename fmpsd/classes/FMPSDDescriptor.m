@@ -31,11 +31,11 @@
 }
 
 - (id)init {
-	self = [super init];
-	if (self != nil) {
-		_attributes = [NSMutableDictionary dictionary];
-	}
-	return self;
+    self = [super init];
+    if (self != nil) {
+        _attributes = [NSMutableDictionary dictionary];
+    }
+    return self;
 }
 
 - (void)readEnumFromStream:(FMPSDStream*)stream {
@@ -68,7 +68,7 @@
     // ClassID: 4 bytes (length), followed either by string or (if length is zero) 4-byte classID
     uint32_t enumClassID;
     NSString *enumClassIDString   = [stream readPSDStringOrGetFourByteID:&enumClassID];
-    (void)enumClassIDString;
+    FMUnused(enumClassIDString);
     
     debug(@"enumClassIDString: '%@'", enumClassIDString);
     debug(@"enumClassID: %@", FMPSDStringForHFSTypeCode(enumClassID));
@@ -193,7 +193,7 @@
         else if (type == 'AntA') {
             
             uint32_t enumTag = [stream readInt32];
-            (void)enumTag;
+            FMUnused(enumTag);
             FMAssert(enumTag == 'enum');
             
             uint32_t junkIntKey = 0;
@@ -218,21 +218,23 @@
             FMAssert(enumTag == 'enum');
             
             NSString *textGriddingString = [stream readPSDString];
-            (void)textGriddingString;
+            FMUnused(textGriddingString);
             FMAssert([textGriddingString isEqualToString:@"textGridding"]);
             
             enumTag = 0;
             NSString *textGriddingTagTypeStringWhatever = [stream readPSDStringOrGetFourByteID:&enumTag];
-            (void)textGriddingTagTypeStringWhatever;
+            FMUnused(textGriddingTagTypeStringWhatever);
+            
             FMAssert(textGriddingTagTypeStringWhatever == NULL);
             
             FMAssert(enumTag == 'None' || enumTag == 'Rnd '); // OK, what other text gridding types are there?
-			
+            
         }
         else if ([key isEqualToString:@"bounds"] || [key isEqualToString:@"boundingBox"]) {
             
             uint32_t boundsKey = [stream readInt32];
-            (void)boundsKey;
+            FMUnused(boundsKey);
+            
             FMAssert(boundsKey == 'Objc');
             
             FMPSDDescriptor *d = [FMPSDDescriptor descriptorWithStream:stream psd:_psd];
@@ -272,7 +274,7 @@
         else if ([key isEqualToString:@"warpStyle"] || [key isEqualToString:@"warpRotate"]) {
             
             uint32_t enumTag = [stream readInt32];
-            (void)enumTag;
+            FMUnused(enumTag);
             FMAssert(enumTag == 'enum');
             
             uint32_t junkIntKey = 0;
@@ -288,11 +290,12 @@
         else if ([key isEqualToString:@"warpValue"] || [key isEqualToString:@"warpPerspective"] || [key isEqualToString:@"warpPerspectiveOther"]) {
             
             uint32_t enumTag = [stream readInt32];
-            (void)enumTag;
+            FMUnused(enumTag);
             FMAssert(enumTag == 'doub');
             
             double val = [stream readDouble64];
-            (void)val;
+            FMUnused(val);
+            
             debug(@"%@: %f", key, val);
             
             /*
@@ -310,7 +313,7 @@
         else if ([key isEqualToString:@"EngineData"]) {
             
             uint32_t tdtaTag = [stream readInt32];
-            (void)tdtaTag;
+            FMUnused(tdtaTag);
             FMAssert(tdtaTag == 'tdta');
             
             debug(@"[stream location]: %ld", [stream location]);
@@ -371,7 +374,7 @@
                  */
                  
                 uint32_t unitType = [stream readInt32];
-                (void)unitType;
+                FMUnused(unitType);
                 //NSLog(@"unitType: %@", FMPSDStringForHFSTypeCode(unitType));
                  
                 // #Pnt isn't documented, but I'm going to assume it means "point".
@@ -405,7 +408,7 @@
                 [stream skipLength:4];
                 
                 uint32_t blendModeTagAgain = [stream readInt32];
-                (void)blendModeTagAgain;
+                FMUnused(blendModeTagAgain);
                 [stream skipLength:4];
                 
                 FMAssert(blendModeTagAgain == 'BlnM');
