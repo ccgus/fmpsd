@@ -1247,7 +1247,7 @@
         
         
         // OK, we're going to de-plane our image, and premultiply it as well.
-        dispatch_queue_t queue = dispatch_get_global_queue(0, DISPATCH_QUEUE_PRIORITY_HIGH);
+        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0);
         
         int32_t width = _width;
         dispatch_apply(_height, queue, ^(size_t row) {
