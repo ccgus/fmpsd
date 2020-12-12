@@ -94,6 +94,7 @@ extern BOOL FMPSDPrintDebugInfo;
 - (uint16_t)version;
 - (uint16_t)channels;
 
+- (NSData*)PSDData;
 - (void)writeToFile:(NSURL*)fileURL;
 - (CIImage*)compositeCIImage;
 

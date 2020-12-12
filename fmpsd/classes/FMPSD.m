@@ -501,12 +501,25 @@ BOOL FMPSDPrintDebugInfo = NO;
     return YES;
 }
 
-- (void)writeToFile:(NSURL*)fileURL {
+- (NSData*)PSDData {
     
-    _channels = 4; // we're always 4.  sorry about that!
+    FMPSDStream *stream = [FMPSDStream PSDStreamForWritingToMemory];
+    
+    [self writeToPSDStream:stream];
+    
+    return [stream outputData];
+}
+
+- (void)writeToFile:(NSURL*)fileURL {
     
     FMPSDStream *stream = [FMPSDStream PSDStreamForWritingToURL:fileURL];
     
+    [self writeToPSDStream:stream];
+}
+
+- (void)writeToPSDStream:(FMPSDStream*)stream {
+    
+    _channels = 4; // we're always 4.  sorry about that!
     
     // File Header Section
     
