@@ -213,21 +213,31 @@
         FMPSDDebug(@"packed g length %ld", [g length]);
         FMPSDDebug(@"packed b length %ld", [b length]);
         
+        // We need to a length of at least two for empty groups and such when we've got compressed data.
+        // Here's how to reproduce the problem if we don't:
+        // + Top Level Folder A
+        //   - Layer B inside Folder A
+        // + Top Level Empty folder C
+        //
+        // And then we'll have a corrupt PSD file.
+        // So that's why we check to see if there is zero bytes.
+    
+        
         // Note: The channel flag is already included in the packed channel data.
         [stream writeSInt16:-1];
-        [stream writeInt32:(uint32_t)([a length])];
+        [stream writeInt32:(uint32_t)([a length] == 0 ? 2 : [a length])];
         [stream writeSInt16:0];
-        [stream writeInt32:(uint32_t)([r length])];
+        [stream writeInt32:(uint32_t)([r length] == 0 ? 2 : [r length])];
         [stream writeSInt16:1];
-        [stream writeInt32:(uint32_t)([g length])];
+        [stream writeInt32:(uint32_t)([g length] == 0 ? 2 : [g length])];
         [stream writeSInt16:2];
-        [stream writeInt32:(uint32_t)([b length])];
+        [stream writeInt32:(uint32_t)([b length] == 0 ? 2 : [b length])];
 
         if (_mask) {
             FMAssert([_packedDatas count] == 5);
             NSData *m = _packedDatas[4];
             [stream writeInt16:-2];
-            [stream writeInt32:(uint32_t)([m length])];
+            [stream writeInt32:(uint32_t)([m length] == 0 ? 2 : [m length])];
         }
         
     }
@@ -295,8 +305,18 @@
         #ifdef DEBUG
         long loc = [extraDataStream location];
         #endif
+        
         // Layer name: Pascal string, padded to a multiple of 4 bytes.
-        [extraDataStream writePascalString:_layerName ? _layerName : @"" withPadding:4];
+        // We check and see if the length is greater than 31 chars and just trim it- because that's what PS does.
+        // But that's fine- it'll be written out as a unicode string below and PS will read that instead. So this
+        // Little bit of layer name writing is really just compatiblity.
+        // FIXME: should we be counting bytes for the pascal version of the layer name?
+        NSString *lName = _layerName ? _layerName : @"";
+        if ([lName length] > 31) {
+            lName = [lName substringToIndex:31];
+        }
+        
+        [extraDataStream writePascalString:lName withPadding:4];
         
         FMAssert((([extraDataStream location] - loc) % 4) == 0); // padding has to be to 4!
         
@@ -347,6 +367,12 @@
         FMAssert(NO);
         return;
     }
+    
+    if (!_image) {
+        FMAssert(_isGroup);
+        return;
+    }
+    
     CGImageRef image = CGImageRetain(_image);
     CGColorSpaceRef colorSpace = CGColorSpaceRetain(CGImageGetColorSpace(image));
     if (CGColorSpaceGetNumberOfComponents(colorSpace) < 3) {

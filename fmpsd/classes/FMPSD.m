@@ -71,6 +71,7 @@ BOOL FMPSDPrintDebugInfo = NO;
 	self = [super init];
     
     if (self != nil) {
+        FMPSDPrintDebugInfo = FMPSDPrintDebugInfo || [[NSUserDefaults standardUserDefaults] boolForKey:@"FMPSDDebug"];
         [self setBaseLayerGroup:[FMPSDLayer baseLayer]];
         _compressLayerData = YES;
         _dpi = 72.0;
