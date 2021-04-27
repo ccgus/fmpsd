@@ -806,7 +806,7 @@
         [layerNameData increaseLengthBy:1];
         ((char*)[layerNameData mutableBytes])[psize] = 0;
         
-        [self setLayerName:[NSString stringWithFormat:@"%s", [layerNameData mutableBytes]]];
+        [self setLayerName:[NSString stringWithFormat:@"%s", (char*)[layerNameData mutableBytes]]];
         
         FMPSDDebug(@"Layer name is '%@'", _layerName);
         
