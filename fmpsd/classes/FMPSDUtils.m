@@ -36,8 +36,6 @@
     
     NSMutableDictionary *contextOptions = [NSMutableDictionary dictionaryWithObjectsAndKeys:
                                            (__bridge id)cs, kCIContextOutputColorSpace,
-                                           //(__bridge id)cs, kCIContextWorkingColorSpace,
-                                           //[NSNumber numberWithBool:YES], kCIContextUseSoftwareRenderer,
                                            nil];
     
     CGContextRef cgContextToMakeClangBeQuiet = FMPSDCGBitmapContextCreate(bounds.size, cs);
