@@ -273,6 +273,26 @@ BOOL FMPSDPrintDebugInfo = NO;
     
     if (_colorMode != FMPSDRGBMode) {
         NSLog(@"Unsupported color mode (%d)", _colorMode);
+        if (err) {
+            
+            NSString *mode = @"";
+            if (_colorMode == FMPSDCMYKMode) {
+                mode = @"CMYK / ";
+            }
+            else if (_colorMode == FMPSDGrayscaleMode) {
+                mode = @"Grayscale / ";
+            }
+            else if (_colorMode == FMPSDIndexedMode) {
+                mode = @"Indexed / ";
+            }
+            else if (_colorMode == FMPSDLabMode) {
+                mode = @"LAB / ";
+            }
+            
+            NSString *s = [NSString stringWithFormat:@"Unsupported color mode (%@%d)", mode, _colorMode];
+            *err = [NSError errorWithDomain:@"8BPS" code:1 userInfo:[NSDictionary dictionaryWithObject:s forKey:NSLocalizedDescriptionKey]];
+        }
+        
         return NO;
     }
     
