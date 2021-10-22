@@ -9,7 +9,6 @@
 #import "FMPSDLayer.h"
 #import "FMPSD.h"
 #import "FMPSDUtils.h"
-#import "FMPSDCIFilters.h"
 #import "FMPSDTextEngineParser.h"
 #import "FMPSDPackBits.h"
 #import <Accelerate/Accelerate.h>
@@ -1458,12 +1457,14 @@
     
     if (_opacity < 255) {
         
-        FMPSDAlphaFilter *f = [[FMPSDAlphaFilter alloc] init];
+        CIFilter *colorMatrix = [CIFilter filterWithName:@"CIColorMatrix"];
         
-        [f setValue:img forKey:kCIInputImageKey];
-        [f setAlpha:[NSNumber numberWithFloat:_opacity / 255.f]];
+        CIVector *v = [CIVector vectorWithX:0 Y:0 Z:0 W:_opacity / 255.0];
         
-        img = [f valueForKey:kCIOutputImageKey];
+        [colorMatrix setValue:v forKey:@"inputAVector"];
+        [colorMatrix setValue:img forKey:kCIInputImageKey];
+        
+        img = [colorMatrix outputImage];
     }
     
     if (_mask) {

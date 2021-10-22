@@ -15,7 +15,7 @@
 void splitPSDFile(NSString *path) {
     
     NSError *err = nil;
-    FMPSD *psd = [FMPSD imageWithContetsOfURL:[NSURL fileURLWithPath:path] error:&err];
+    FMPSD *psd = [FMPSD imageWithContentsOfURL:[NSURL fileURLWithPath:path] error:&err];
     
     if (!psd) {
         NSLog(@"Error loading PSD: %@", err);
@@ -43,7 +43,7 @@ void splitPSDFile(NSString *path) {
 void makeComposite(NSString *path) {
     
     NSError *err = nil;
-    FMPSD *psd = [FMPSD imageWithContetsOfURL:[NSURL fileURLWithPath:path] error:&err];
+    FMPSD *psd = [FMPSD imageWithContentsOfURL:[NSURL fileURLWithPath:path] error:&err];
     
     if (!psd) {
         NSLog(@"Error loading PSD: %@", err);
@@ -133,7 +133,7 @@ void convertToPSD(NSString *path) {
     
     // Read it back in for fun.
     NSError *err = nil;
-    [FMPSD imageWithContetsOfURL:writeURL error:&err];
+    [FMPSD imageWithContentsOfURL:writeURL error:&err];
     
     
     
