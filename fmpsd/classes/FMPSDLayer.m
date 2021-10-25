@@ -434,6 +434,7 @@
     }
     
     vImage_Error err = vImageConvert_BGRA8888toPlanar8(&srcBRGA, &planarBGRA[0], &planarBGRA[1], &planarBGRA[2], &planarBGRA[3], kvImageNoFlags);
+    FMUnused(err);
     FMAssert(err == kvImageNoError);
     
     NSData *packedB = FMPSDEncodedPackBits(planarBGRA[0].data, _width, _height, planarBGRA[0].rowBytes);
