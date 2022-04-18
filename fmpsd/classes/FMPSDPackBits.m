@@ -166,10 +166,10 @@ NSData * FMPSDEncodedPackBits(char* src, size_t w, size_t h, size_t bytesLength)
     
     [outputStream writeInt16:1]; // The encoding
     
-    NSInteger totalLen = 0;
+    // NSInteger totalLen = 0;
     for (NSData *line in lineData) {
         NSInteger len = [line length];
-        totalLen += len;
+        // totalLen += len;
         [outputStream writeInt16:len];
     }
     
