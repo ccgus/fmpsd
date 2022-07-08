@@ -27,10 +27,13 @@
 
 - (uint16_t)nextShort {
     
-    uint16_t *u = (uint16_t*)&(_base[_loc]);
+    //uint16_t f;
+    //[_engineData getBytes:&f range:NSMakeRange(_loc, 2)];
     
-    //uint16 c = CFSwapInt16HostToBig(u[0]);
-    uint16_t c = CFSwapInt16BigToHost(u[0]);
+    uint16_t f;
+    memcpy(&f, &_base[_loc], sizeof(uint16_t));
+
+    uint16_t c = CFSwapInt16BigToHost(f);
     _loc += 2;
     
     return c;
