@@ -675,10 +675,11 @@
         int16_t chandId = [stream readInt16];
         uint32_t chanLen = [stream readInt32];
         
+        // –1 = transparency mask; –2 = user supplied layer mask
         _channelIds[chCount]    = chandId;
         _channelLens[chCount]   = chanLen;
         
-        FMPSDDebug(@"  Channel slot %d id: %d len: %d", chCount, chandId, chanLen);
+        FMPSDDebug(@"  Channel slot %d id: %d len: %d (loc %ld)", chCount, chandId, chanLen, [stream location]);
     }
     
     
@@ -710,7 +711,7 @@
     [stream readInt8]; // filler
     
     
-    uint32_t lenOfExtraData     = [stream readInt32]; // 84454 - 2600 len
+    uint32_t lenOfExtraData     = [stream readInt32]; // 84454 - 2600 len Length of the extra data field ( = the total length of the next five fields).
     //lenOfExtraData = (lenOfExtraData % 2 == 0) ? lenOfExtraData : lenOfExtraData + 1;
     //lenOfExtraData = (lenOfExtraData) & ~0x01;
     
@@ -765,6 +766,11 @@
                 _maskBottom2 = [stream readSInt32];
                 _maskRight2  = [stream readSInt32];
                 
+                if (lenOfMask != 36) { // Gus: Bug 43762
+                    NSLog(@"%s:%d", __FUNCTION__, __LINE__);
+                    NSLog(@"Warning, got an unexpected mask info length: %d", lenOfMask);
+                    [stream skipLength:(lenOfMask - 36)];
+                }
             }
             
             (void)lflags;

@@ -152,6 +152,40 @@
 
 - (uint32_t)readInt32 {
     
+    uint32_t value = 0;
+    FMAssert(sizeof(uint32_t) == 4);
+    
+    if ([self read:(uint8_t*)&value maxLength:sizeof(uint32_t)] == sizeof(uint32_t)) {
+        #ifdef __LITTLE_ENDIAN__
+            value = CFSwapInt32(value);
+        #endif
+    }
+    
+    return value;
+    
+    
+    /*
+    And this is my first attempt, until I realized I could just do the above.
+    uint32_t value = -1;
+    uint32_t byteCount = 4;
+    
+    if ((NSUInteger)(_location + byteCount) > [_inputDataStream length]) {
+        
+        NSString *s = [NSString stringWithFormat:@"Buffer overrun, trying to read to %lu bytes of %lu (%lu length at location %ld)", _location + byteCount, (unsigned long)[_inputDataStream length], (unsigned long)byteCount, _location];
+        
+        NSLog(@"%@", s);
+        
+        [NSException raise:@"PSD Buffer Overrun" format:@"%@", s];
+        
+        return -1;
+    }
+    
+    [_inputDataStream getBytes:&value range:NSMakeRange(_location, byteCount)];
+    _location += 4;
+    */
+    
+    /*
+    This is the old way we were doing things -b ut the Address Sanitizer didn't like it.
     uint8_t buffer[4];
     uint32_t value = -1;
     
@@ -161,6 +195,7 @@
         value |= buffer[2] << 8;
         value |= buffer[3];
     }
+    */
     
     return value;
 }
