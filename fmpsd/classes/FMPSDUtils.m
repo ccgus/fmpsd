@@ -49,7 +49,12 @@
     
     NSURL *u = [NSURL fileURLWithPath:path];
     
+#ifdef __UNIFORMTYPEIDENTIFIERS_UTCORETYPES__
     CGImageDestinationRef imageDestination = CGImageDestinationCreateWithURL((__bridge CFURLRef)u, (__bridge CFStringRef)UTTypeTIFF.identifier, 1, NULL);
+#else
+    CGImageDestinationRef imageDestination = CGImageDestinationCreateWithURL((__bridge CFURLRef)u, kUTTypeTIFF, 1, NULL);
+#endif
+    
     FMAssert(imageDestination);
     
     CGImageDestinationAddImage(imageDestination, ref, nil);//(__bridge CFDictionaryRef)[NSDictionary dictionary]);
