@@ -1050,10 +1050,10 @@
         
         if (encoding > 3) {
             
-            NSLog(@"_layerName: '%@'", _layerName);
-            NSLog(@"_channels: %d", _channels);
-            NSLog(@"_channelLens: %d", _channelLens[_channels]);
-            NSLog(@"planeNum: %d", planeNum);
+            FMPSDDebug(@"_layerName: '%@'", _layerName);
+            FMPSDDebug(@"_channels: %d", _channels);
+            FMPSDDebug(@"_channelLens: %d", _channelLens[_channels]);
+            FMPSDDebug(@"planeNum: %d", planeNum);
 
             NSString *s = [NSString stringWithFormat:@"%s:%d Bad encoding (%d) at offset %ld", __FUNCTION__, __LINE__, encoding, [stream location]];
         
