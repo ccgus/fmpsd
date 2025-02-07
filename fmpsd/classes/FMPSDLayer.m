@@ -1162,6 +1162,8 @@
 
 - (BOOL)readImageDataFromStream:(FMPSDStream*)stream lineLengths:(uint16_t *)lineLengths needReadPlanInfo:(BOOL)needsPlaneInfo error:(NSError *__autoreleasing *)err {
     
+    FMPSDDebug(@"readImageDataFromStream for %@", _layerName);
+    
     char* r = nil, *g = nil, *b = nil, *a = nil, *m = nil;
     
     int j = 0;
@@ -1211,7 +1213,7 @@
             }
         }
         else if (channelId == -2) { // m
-            FMPSDDebug(@"reading mask");
+            FMPSDDebug(@"reading mask for %@", _layerName);
             
             long start = [stream location];
             
@@ -1245,6 +1247,19 @@
         else {
             [stream skipLength:_channelLens[j]];
         }
+    }
+    
+    if (m) {
+        
+        CGColorSpaceRef cs = CGColorSpaceCreateWithName(kCGColorSpaceGenericGray);
+        
+        CGContextRef alphaMask = CGBitmapContextCreate(m, _maskWidth, _maskHeight, 8, _maskWidth, cs, (CGBitmapInfo)kCGImageAlphaNone);
+        
+        _mask = CGBitmapContextCreateImage(alphaMask);
+                    
+        CGColorSpaceRelease(cs);
+        CGContextRelease(alphaMask);
+        
     }
     
     if ((_height <= 0) || (_width <= 0)) {
@@ -1312,18 +1327,6 @@
         
         CGContextRelease(ctx);
         
-        if (m) {
-            
-            CGColorSpaceRef cs = CGColorSpaceCreateWithName(kCGColorSpaceGenericGray);
-            
-            CGContextRef alphaMask = CGBitmapContextCreate(m, _maskWidth, _maskHeight, 8, _maskWidth, cs, (CGBitmapInfo)kCGImageAlphaNone);
-            
-            _mask = CGBitmapContextCreateImage(alphaMask);
-                        
-            CGColorSpaceRelease(cs);
-            CGContextRelease(alphaMask);
-            
-        }
         
     }
     
