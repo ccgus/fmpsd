@@ -14,7 +14,9 @@
 #import "FMPSDLayer.h"
 
 #ifdef DEBUG
+#ifndef debug
     #define debug(...) NSLog(__VA_ARGS__)
+#endif
 #ifndef FMAssert
     #define FMAssert assert
 #endif
