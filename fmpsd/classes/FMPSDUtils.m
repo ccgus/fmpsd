@@ -78,7 +78,16 @@
     
     //CGColorSpaceRef linearCS = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGBLinear);
     
+    BOOL bad = NO;
+    
     CIImage *compareTo = [CIImage imageWithContentsOfURL:pathURL options:nil];
+    if (!compareTo) {
+        NSLog(@"Can't load an image at %@", pathURL);
+        // 15.7.1 (24G231) killed reading of our PSD files?
+        return NO;
+    }
+    
+    
     CGRect r = CGRectMake(0, 0, compareTo.extent.size.width, compareTo.extent.size.height);
     
     NSString *tempPath = [NSString stringWithFormat:@"/private/tmp/%@.tiff", [self stringWithUUID]];
@@ -107,8 +116,6 @@
     
     CGContextDrawImage(ctxA, FMPSDCGImageGetRect(imageRefA), imageRefA);
     CGContextDrawImage(ctxB, FMPSDCGImageGetRect(imageRefB), imageRefB);
-    
-    BOOL bad = NO;
     
     if ((CGImageGetWidth(imageRefA) != CGImageGetWidth(imageRefB)) || (CGImageGetHeight(imageRefA) != CGImageGetHeight(imageRefB))) {
         NSLog(@"Sizes are wrong!");
