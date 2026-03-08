@@ -361,6 +361,10 @@ BOOL FMPSDPrintDebugInfo = NO;
             //debug(@"[Layers group information]: '%@'", [stream readDataOfLength:sizeofdata]);
             [stream skipLength:sizeofdata];
         }
+        else if (uID == 1037) { // global light angle
+            _globalLightAngle = [stream readSInt32];
+            FMPSDDebug(@"Global light angle: %d", _globalLightAngle);
+        }
         else if (uID == 1050) { // slices
             _slices = [stream readDataOfLength:sizeofdata];
         }

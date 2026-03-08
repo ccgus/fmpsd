@@ -88,6 +88,7 @@ extern BOOL FMPSDPrintDebugInfo;
 @property (retain) FMPSDLayer *compositeLayer;
 @property (retain) FMPSDLayer *baseLayerGroup;
 @property (assign) BOOL compressLayerData;
+@property (assign) int32_t globalLightAngle;
 
 + (instancetype)imageWithContentsOfURL:(NSURL*)fileURL error:(NSError *__autoreleasing *)err;
 + (instancetype)imageWithContentsOfURL:(NSURL*)fileURL error:(NSError *__autoreleasing *)err printDebugInfo:(BOOL)debugInfo;

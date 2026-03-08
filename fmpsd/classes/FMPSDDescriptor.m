@@ -193,20 +193,27 @@
         else if (type == 'AntA') {
             
             uint32_t enumTag = [stream readInt32];
-            FMUnused(enumTag);
-            FMAssert(enumTag == 'enum');
             
-            uint32_t junkIntKey = 0;
-            NSString *junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey];
-            (void)junkStringKey; // shh, clang-sa, I know.
-            
-            // we don't do anything with this value right now - (antiAliasSharp(the 4 char key is null of course)|'Anno'(None)|'AnCr'(crisp)|'AnSt'(strong)|'AnSm'(smooth))
-            junkIntKey = 0;
-            junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey];
-            
-            debug(@"junkIntKey: %@", FMPSDStringForHFSTypeCode(junkIntKey));
-            debug(@"junkStringKey: '%@'", junkStringKey);
-            
+            if (enumTag == 'enum') {
+                uint32_t junkIntKey = 0;
+                NSString *junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey];
+                (void)junkStringKey; // shh, clang-sa, I know.
+
+                // we don't do anything with this value right now - (antiAliasSharp(the 4 char key is null of course)|'Anno'(None)|'AnCr'(crisp)|'AnSt'(strong)|'AnSm'(smooth))
+                junkIntKey = 0;
+                junkStringKey = [stream readPSDStringOrGetFourByteID:&junkIntKey];
+
+                debug(@"junkIntKey: %@", FMPSDStringForHFSTypeCode(junkIntKey));
+                debug(@"junkStringKey: '%@'", junkStringKey);
+            }
+            else if (enumTag == 'bool') {
+                [[self attributes] setObject:@([stream readInt8]) forKey:@"AntA"];
+            }
+            else {
+                debug(@"Unexpected AntA tag: '%@'", FMPSDStringForHFSTypeCode(enumTag));
+                FMAssert(NO);
+            }
+
         }
         else if (type == 'null') {
             [stream readInt32];
@@ -379,7 +386,7 @@
                  
                 // #Pnt isn't documented, but I'm going to assume it means "point".
                  
-                FMAssert(unitType == '#Pnt' || unitType == '#Pxl' || unitType == '#Ang' || unitType == '#Prc');
+                FMAssert(unitType == '#Pnt' || unitType == '#Pxl' || unitType == '#Ang' || unitType == '#Prc' || unitType == '#Rsl' || unitType == '#Rlt' || unitType == '#Nne');
                 
                 double location = [stream readDouble64];
                 
@@ -402,20 +409,69 @@
             }
             else if (tag == 'enum') {
                 
-                // blend mode is the only guy I'm aware fo here…
-                FMAssert([attKey isEqualToString:@"BlnM"]);
+                uint32_t enumTypeId;
+                NSString *enumTypeString = [stream readPSDStringOrGetFourByteID:&enumTypeId];
+                FMUnused(enumTypeString);
                 
-                [stream skipLength:4];
+                uint32_t enumValueId;
+                NSString *enumValueString = [stream readPSDStringOrGetFourByteID:&enumValueId];
                 
-                uint32_t blendModeTagAgain = [stream readInt32];
-                FMUnused(blendModeTagAgain);
-                [stream skipLength:4];
+                NSString *value = enumValueString ? enumValueString : FMPSDStringForHFSTypeCode(enumValueId);
+                if (value) {
+                    [[self attributes] setObject:value forKey:attKey];
+                }
+
+            }
+            else if (tag == 'VlLs') {
                 
-                FMAssert(blendModeTagAgain == 'BlnM');
+                uint32_t listCount = [stream readInt32];
+                NSMutableArray *list = [NSMutableArray arrayWithCapacity:listCount];
                 
-                uint32_t blendMode = [stream readInt32];
+                for (uint32_t li = 0; li < listCount; li++) {
+                    uint32_t itemType = [stream readInt32];
+                    if (itemType == 'Objc') {
+                        FMPSDDescriptor *d = [FMPSDDescriptor descriptorWithStream:stream psd:_psd];
+                        if (d) {
+                            [list addObject:d];
+                        }
+                    }
+                    else if (itemType == 'doub') {
+                        [list addObject:@([stream readDouble64])];
+                    }
+                    else if (itemType == 'long') {
+                        [list addObject:@([stream readInt32])];
+                    }
+                    else if (itemType == 'TEXT') {
+                        NSString *text = [stream readPSDString16];
+                        if (text) {
+                            [list addObject:text];
+                        }
+                    }
+                    else if (itemType == 'bool') {
+                        [list addObject:@([stream readInt8])];
+                    }
+                    else if (itemType == 'enum') {
+                        uint32_t enumTypeId;
+                        [stream readPSDStringOrGetFourByteID:&enumTypeId];
+                        uint32_t enumValueId;
+                        NSString *enumValueString = [stream readPSDStringOrGetFourByteID:&enumValueId];
+                        NSString *value = enumValueString ? enumValueString : FMPSDStringForHFSTypeCode(enumValueId);
+                        if (value) {
+                            [list addObject:value];
+                        }
+                    }
+                    else if (itemType == 'UntF') {
+                        [stream readInt32]; // unit type
+                        [list addObject:@([stream readDouble64])];
+                    }
+                    else {
+                        debug(@"Unknown VlLs item type: '%@'", FMPSDStringForHFSTypeCode(itemType));
+                        FMAssert(NO);
+                        return NO;
+                    }
+                }
                 
-                [[self attributes] setObject:FMPSDStringForHFSTypeCode(blendMode) forKey:attKey];
+                [[self attributes] setObject:list forKey:attKey];
                 
             }
             else {

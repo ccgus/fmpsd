@@ -895,6 +895,28 @@
                 }
             }
 
+            else if (tag == 'lfx2') {
+                // Object-based effects layer info (Photoshop CS6+)
+                // Format: version (uint32) + descriptorVersion (uint32) + descriptor
+                long lfx2StartLocation = [stream location];
+
+                uint32_t lfx2Version = [stream readInt32];
+                FMUnused(lfx2Version);
+
+                uint32_t lfx2DescriptorVersion = [stream readInt32];
+                FMUnused(lfx2DescriptorVersion);
+
+                FMPSDDescriptor *effectsDescriptor = [FMPSDDescriptor descriptorWithStream:stream psd:_psd];
+                if (effectsDescriptor) {
+                    [self setLayerEffects:effectsDescriptor];
+                }
+
+                long currentLoc = [stream location];
+                long delta = (lfx2StartLocation + sigSize) - currentLoc;
+                if (delta > 0) {
+                    [stream skipLength:delta];
+                }
+            }
             else if (tag == 'TySh') {
                 // http://www.adobe.com/devnet-apps/photoshop/fileformatashtml/PhotoshopFileFormats.htm#50577409_19762
                 long textStartLocation = [stream location];
@@ -1546,6 +1568,33 @@
     _channelIds[2] = 2;
     _channelIds[3] = -1;
     _isComposite = YES;
+}
+
+- (BOOL)hasDropShadow {
+    if (!_layerEffects) {
+        return NO;
+    }
+    
+    FMPSDDescriptor *drsh = [[_layerEffects attributes] objectForKey:@"DrSh"];
+    if (drsh && [drsh isKindOfClass:[FMPSDDescriptor class]]) {
+        NSNumber *enabled = [[drsh attributes] objectForKey:@"enab"];
+        return [enabled boolValue];
+    }
+    
+    return NO;
+}
+
+- (FMPSDDescriptor *)dropShadow {
+    if (!_layerEffects) {
+        return nil;
+    }
+    
+    FMPSDDescriptor *drsh = [[_layerEffects attributes] objectForKey:@"DrSh"];
+    if (drsh && [drsh isKindOfClass:[FMPSDDescriptor class]]) {
+        return drsh;
+    }
+    
+    return nil;
 }
 
 @end

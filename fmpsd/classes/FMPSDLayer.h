@@ -70,6 +70,10 @@
 @property (assign) uint32_t blendMode;
 @property (retain) NSDictionary *textProperties;
 @property CGImageRef image;
+@property (retain) FMPSDDescriptor *layerEffects;
+
+- (BOOL)hasDropShadow;
+- (FMPSDDescriptor *)dropShadow;
 
 + (instancetype)layerWithStream:(FMPSDStream*)stream psd:(FMPSD*)psd error:(NSError *__autoreleasing *)err;
 + (instancetype)layerWithSize:(CGSize)s psd:(FMPSD*)psd;

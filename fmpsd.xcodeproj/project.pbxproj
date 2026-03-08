@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		335F2A5DF473CB1FE1F7C263 /* FMPSDDescriptor+DropShadow.m in Sources */ = {isa = PBXBuildFile; fileRef = EA67EED036DB969B08F518C9 /* FMPSDDescriptor+DropShadow.m */; };
 		467BE765182B258D008D7645 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 467BE764182B258D008D7645 /* Accelerate.framework */; };
 		AEB344A817BE3ECB00335650 /* FMPSDTextEngineParser.m in Sources */ = {isa = PBXBuildFile; fileRef = AEB344A717BE3ECB00335650 /* FMPSDTextEngineParser.m */; };
 		CC16D874221B659A001646EB /* FMPSDPackBits.m in Sources */ = {isa = PBXBuildFile; fileRef = CC16D873221B659A001646EB /* FMPSDPackBits.m */; };
@@ -38,6 +39,7 @@
 
 /* Begin PBXFileReference section */
 		467BE764182B258D008D7645 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
+		780716CE34357AC83DE62592 /* FMPSDDescriptor+DropShadow.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = "FMPSDDescriptor+DropShadow.h"; path = "classes/FMPSDDescriptor+DropShadow.h"; sourceTree = "<group>"; };
 		AEB344A617BE3ECB00335650 /* FMPSDTextEngineParser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FMPSDTextEngineParser.h; path = classes/FMPSDTextEngineParser.h; sourceTree = "<group>"; };
 		AEB344A717BE3ECB00335650 /* FMPSDTextEngineParser.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = FMPSDTextEngineParser.m; path = classes/FMPSDTextEngineParser.m; sourceTree = "<group>"; };
 		CC16D872221B659A001646EB /* FMPSDPackBits.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FMPSDPackBits.h; path = classes/FMPSDPackBits.h; sourceTree = "<group>"; };
@@ -61,6 +63,7 @@
 		CCF682FD17724EB800478D7A /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		CCF6830017724EB800478D7A /* fmpsd-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "fmpsd-Prefix.pch"; sourceTree = "<group>"; };
 		CCF6830117724EB800478D7A /* fmpsd.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = fmpsd.1; sourceTree = "<group>"; };
+		EA67EED036DB969B08F518C9 /* FMPSDDescriptor+DropShadow.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = "FMPSDDescriptor+DropShadow.m"; path = "classes/FMPSDDescriptor+DropShadow.m"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -125,6 +128,8 @@
 				CC16D873221B659A001646EB /* FMPSDPackBits.m */,
 				CC4381AB177251AF009D82C3 /* FMPSDDescriptor.h */,
 				CC4381AC177251AF009D82C3 /* FMPSDDescriptor.m */,
+				780716CE34357AC83DE62592 /* FMPSDDescriptor+DropShadow.h */,
+				EA67EED036DB969B08F518C9 /* FMPSDDescriptor+DropShadow.m */,
 				CC4381AD177251AF009D82C3 /* FMPSDLayer.h */,
 				CC4381AE177251AF009D82C3 /* FMPSDLayer.m */,
 				CC4381AF177251AF009D82C3 /* FMPSDStream.h */,
@@ -209,6 +214,7 @@
 				CC6097181995418E00B5B6C0 /* FMABR.m in Sources */,
 				CCF682FE17724EB800478D7A /* main.m in Sources */,
 				AEB344A817BE3ECB00335650 /* FMPSDTextEngineParser.m in Sources */,
+				335F2A5DF473CB1FE1F7C263 /* FMPSDDescriptor+DropShadow.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
