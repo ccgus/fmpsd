@@ -212,7 +212,7 @@ CGContextRef FMPSDCGBitmapContextCreate(CGSize size, CGColorSpaceRef cs) {
     
     FMAssert(cs);
     
-    CGBitmapInfo options = kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host;
+    CGBitmapInfo options = (uint32_t)kCGImageAlphaPremultipliedFirst | (uint32_t)kCGBitmapByteOrder32Host;
     
     CGContextRef context = CGBitmapContextCreate(0x00, size.width, size.height, 8, 0, cs, options);
     

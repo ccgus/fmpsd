@@ -382,7 +382,7 @@
         CGImageRelease(oldImage);
     }
     // BGRA. The little endian option flips things around.
-    CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 8, _width * 4, colorSpace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
+    CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 8, _width * 4, colorSpace, (CGBitmapInfo)kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
 
     CGColorSpaceRelease(colorSpace);
 
@@ -534,7 +534,7 @@
         
         char *m = nil;
         
-        CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 8, _width * 4, cs, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
+        CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 8, _width * 4, cs, (uint32_t)kCGImageAlphaPremultipliedFirst | (uint32_t)kCGBitmapByteOrder32Little);
         
         CGColorSpaceRelease(cs);
         
@@ -1310,7 +1310,7 @@
     
     if (n) {
         
-        CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 8, _width * 4, [_psd colorSpace], kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
+        CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 8, _width * 4, [_psd colorSpace], (uint32_t)kCGImageAlphaPremultipliedFirst | (uint32_t)kCGBitmapByteOrder32Little);
         
         FMPSDPixel *c = CGBitmapContextGetData(ctx);
         
