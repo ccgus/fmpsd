@@ -75,6 +75,8 @@
 - (BOOL)hasDropShadow;
 - (FMPSDDescriptor *)dropShadow;
 
+- (void)setDropShadowEnabled:(BOOL)enabled color:(CGColorRef)color opacity:(double)opacity angle:(double)angle distance:(double)distance size:(double)size;
+
 + (instancetype)layerWithStream:(FMPSDStream*)stream psd:(FMPSD*)psd error:(NSError *__autoreleasing *)err;
 + (instancetype)layerWithSize:(CGSize)s psd:(FMPSD*)psd;
 + (instancetype)baseLayer;

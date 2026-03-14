@@ -165,6 +165,138 @@
     free(buffer);
 }
 
+- (void)writePSDDescriptorString:(NSString *)string toStream:(FMPSDStream *)stream {
+    // PSDString16 format: uint32 length + uint16 chars
+    uint32_t len = string ? (uint32_t)[string length] : 0;
+    [stream writeInt32:len];
+    for (uint32_t i = 0; i < len; i++) {
+        [stream writeInt16:[string characterAtIndex:i]];
+    }
+}
+
+- (void)writeDropShadowDescriptorToStream:(FMPSDStream *)stream {
+    FMPSDDescriptor *drsh = [self dropShadow];
+    NSDictionary *attrs = [drsh attributes];
+
+    // Descriptor name (empty unicode string)
+    [self writePSDDescriptorString:@"" toStream:stream];
+    // ClassID for DrSh
+    [stream writePSDStringOrFourByteID:'DrSh'];
+
+    // Count the items we'll write
+    // enab, Md  , Clr , Opct, uglg, lagl, Dstn, Ckmt, blur = 9 items
+    FMPSDDescriptor *colorDesc = [attrs objectForKey:@"Clr "];
+    uint32_t itemCount = colorDesc ? 9 : 8;
+    [stream writeInt32:itemCount];
+
+    // enab - bool
+    [stream writePSDStringOrFourByteID:'enab'];
+    [stream writeInt32:'bool'];
+    [stream writeInt8:[[attrs objectForKey:@"enab"] boolValue] ? 1 : 0];
+
+    // Md   - enum (blend mode)
+    [stream writePSDStringOrFourByteID:'Md  '];
+    [stream writeInt32:'enum'];
+    [stream writePSDStringOrFourByteID:'BlnM'];
+    NSString *modeString = [attrs objectForKey:@"Md  "];
+    if (modeString) {
+        // Write as a string key
+        uint32_t len = (uint32_t)[modeString length];
+        [stream writeInt32:len];
+        const char *cstr = [modeString UTF8String];
+        [stream writeChars:(char *)cstr length:len];
+    }
+    else {
+        [stream writePSDStringOrFourByteID:'Mltp']; // Default to Multiply
+    }
+
+    // Clr  - Objc (color descriptor)
+    if (colorDesc) {
+        [stream writePSDStringOrFourByteID:'Clr '];
+        [stream writeInt32:'Objc'];
+
+        // Color descriptor
+        [self writePSDDescriptorString:@"" toStream:stream];
+        [stream writePSDStringOrFourByteID:'RGBC'];
+        [stream writeInt32:3]; // 3 items: Rd, Grn, Bl
+
+        // Rd
+        [stream writePSDStringOrFourByteID:'Rd  '];
+        [stream writeInt32:'doub'];
+        [stream writeDouble64:[[colorDesc.attributes objectForKey:@"Rd  "] doubleValue]];
+
+        // Grn
+        [stream writePSDStringOrFourByteID:'Grn '];
+        [stream writeInt32:'doub'];
+        [stream writeDouble64:[[colorDesc.attributes objectForKey:@"Grn "] doubleValue]];
+
+        // Bl
+        [stream writePSDStringOrFourByteID:'Bl  '];
+        [stream writeInt32:'doub'];
+        [stream writeDouble64:[[colorDesc.attributes objectForKey:@"Bl  "] doubleValue]];
+    }
+
+    // Opct - UntF #Prc (percentage)
+    [stream writePSDStringOrFourByteID:'Opct'];
+    [stream writeInt32:'UntF'];
+    [stream writeInt32:'#Prc'];
+    [stream writeDouble64:[[attrs objectForKey:@"Opct"] doubleValue]];
+
+    // uglg - bool (use global light)
+    [stream writePSDStringOrFourByteID:'uglg'];
+    [stream writeInt32:'bool'];
+    [stream writeInt8:[[attrs objectForKey:@"uglg"] boolValue] ? 1 : 0];
+
+    // lagl - UntF #Ang (angle in degrees)
+    [stream writePSDStringOrFourByteID:'lagl'];
+    [stream writeInt32:'UntF'];
+    [stream writeInt32:'#Ang'];
+    [stream writeDouble64:[[attrs objectForKey:@"lagl"] doubleValue]];
+
+    // Dstn - UntF #Pxl (distance in pixels)
+    [stream writePSDStringOrFourByteID:'Dstn'];
+    [stream writeInt32:'UntF'];
+    [stream writeInt32:'#Pxl'];
+    [stream writeDouble64:[[attrs objectForKey:@"Dstn"] doubleValue]];
+
+    // Ckmt - UntF #Pxl (spread/choke)
+    [stream writePSDStringOrFourByteID:'Ckmt'];
+    [stream writeInt32:'UntF'];
+    [stream writeInt32:'#Pxl'];
+    [stream writeDouble64:[[attrs objectForKey:@"Ckmt"] doubleValue]];
+
+    // blur - UntF #Pxl (size/blur)
+    [stream writePSDStringOrFourByteID:'blur'];
+    [stream writeInt32:'UntF'];
+    [stream writeInt32:'#Pxl'];
+    [stream writeDouble64:[[attrs objectForKey:@"blur"] doubleValue]];
+}
+
+- (void)writeLayerEffectsDescriptorToStream:(FMPSDStream *)stream {
+    // Top-level effects descriptor
+    // Descriptor name (empty unicode string)
+    [self writePSDDescriptorString:@"" toStream:stream];
+    // ClassID
+    [stream writePSDStringOrFourByteID:'null'];
+
+    // Item count - just DrSh for now
+    BOOL hasDrSh = [[_layerEffects attributes] objectForKey:@"DrSh"] != nil;
+    uint32_t effectCount = 0;
+    if (hasDrSh) {
+        effectCount++;
+    }
+    [stream writeInt32:effectCount];
+
+    if (hasDrSh) {
+        // Key for this item
+        [stream writePSDStringOrFourByteID:'DrSh'];
+        // Type tag
+        [stream writeInt32:'Objc'];
+        // Write the descriptor
+        [self writeDropShadowDescriptorToStream:stream];
+    }
+}
+
 - (void)writeLayerInfoToStream:(FMPSDStream*)stream {
     
     if (_isGroup) {
@@ -352,9 +484,26 @@
         }
         
         free(buffer);
-        
+
+        // Layer effects (lfx2) - drop shadow
+        if (_layerEffects && [[_layerEffects attributes] objectForKey:@"DrSh"]) {
+            [extraDataStream writeInt32:'8BIM'];
+            [extraDataStream writeInt32:'lfx2'];
+
+            FMPSDStream *lfx2Stream = [FMPSDStream PSDStreamForWritingToMemory];
+
+            [lfx2Stream writeInt32:0]; // version
+            [lfx2Stream writeInt32:16]; // descriptor version
+
+            // Write the effects descriptor
+            [self writeLayerEffectsDescriptorToStream:lfx2Stream];
+
+            [extraDataStream writeDataWithLengthHeader:[lfx2Stream outputData]];
+            [lfx2Stream close];
+        }
+
     // Write and Close
-        
+
         [stream writeDataWithLengthHeader:[extraDataStream outputData]];
         [extraDataStream close];
     }
@@ -1568,6 +1717,50 @@
     _channelIds[2] = 2;
     _channelIds[3] = -1;
     _isComposite = YES;
+}
+
+- (void)setDropShadowEnabled:(BOOL)enabled color:(CGColorRef)color opacity:(double)opacity angle:(double)angle distance:(double)distance size:(double)size {
+
+    if (!_layerEffects) {
+        _layerEffects = [[FMPSDDescriptor alloc] init];
+        [_layerEffects setAttributes:[NSMutableDictionary dictionary]];
+    }
+
+    FMPSDDescriptor *drsh = [[FMPSDDescriptor alloc] init];
+    [drsh setAttributes:[NSMutableDictionary dictionary]];
+
+    [[drsh attributes] setObject:@(enabled) forKey:@"enab"];
+    [[drsh attributes] setObject:@"Mltp" forKey:@"Md  "]; // Multiply blend mode
+    [[drsh attributes] setObject:@(opacity) forKey:@"Opct"];
+    [[drsh attributes] setObject:@(NO) forKey:@"uglg"]; // Don't use global light
+    [[drsh attributes] setObject:@(angle) forKey:@"lagl"];
+    [[drsh attributes] setObject:@(distance) forKey:@"Dstn"];
+    [[drsh attributes] setObject:@(0.0) forKey:@"Ckmt"]; // Spread
+    [[drsh attributes] setObject:@(size) forKey:@"blur"];
+
+    if (color) {
+        const CGFloat *components = CGColorGetComponents(color);
+        NSUInteger numComponents = CGColorGetNumberOfComponents(color);
+
+        FMPSDDescriptor *colorDesc = [[FMPSDDescriptor alloc] init];
+        [colorDesc setAttributes:[NSMutableDictionary dictionary]];
+
+        if (numComponents >= 3) {
+            [[colorDesc attributes] setObject:@(components[0] * 255.0) forKey:@"Rd  "];
+            [[colorDesc attributes] setObject:@(components[1] * 255.0) forKey:@"Grn "];
+            [[colorDesc attributes] setObject:@(components[2] * 255.0) forKey:@"Bl  "];
+        }
+        else {
+            // Grayscale
+            [[colorDesc attributes] setObject:@(components[0] * 255.0) forKey:@"Rd  "];
+            [[colorDesc attributes] setObject:@(components[0] * 255.0) forKey:@"Grn "];
+            [[colorDesc attributes] setObject:@(components[0] * 255.0) forKey:@"Bl  "];
+        }
+
+        [[drsh attributes] setObject:colorDesc forKey:@"Clr "];
+    }
+
+    [[_layerEffects attributes] setObject:drsh forKey:@"DrSh"];
 }
 
 - (BOOL)hasDropShadow {

@@ -50,6 +50,7 @@
 - (void)writeInt16:(uint16_t)value;
 - (void)writeInt32:(uint32_t)value;
 - (void)writeInt64:(uint64_t)value;
+- (void)writeDouble64:(double)value;
 
 - (void)writeSInt16:(int16_t)value;
 - (void)writeSInt32:(int32_t)value;
@@ -58,5 +59,6 @@
 - (void)writeChars:(char*)chars length:(size_t)length;
 - (void)writeDataWithLengthHeader:(NSData*)data;
 - (void)writePascalString:(NSString*)string withPadding:(int)p;
+- (void)writePSDStringOrFourByteID:(uint32_t)fourByteID;
 
 @end

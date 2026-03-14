@@ -401,6 +401,12 @@
     _location += 8;
 }
 
+- (void)writeDouble64:(double)value {
+    CFSwappedFloat64 sf = CFConvertDoubleHostToSwapped(value);
+    [_outputStream write:(const uint8_t *)&sf.v maxLength:8];
+    _location += 8;
+}
+
 - (void)writeInt32:(uint32_t)value {
     uint32_t writeV = CFSwapInt32HostToBig(value);
     [_outputStream write:(const uint8_t *)&writeV maxLength:4];
@@ -524,6 +530,12 @@
     free(buffer);
 }
 
+
+- (void)writePSDStringOrFourByteID:(uint32_t)fourByteID {
+    // Inverse of readPSDStringOrGetFourByteID: when length is 0, write a 4-byte ID.
+    [self writeInt32:0]; // length = 0 means next 4 bytes are the ID
+    [self writeInt32:fourByteID];
+}
 
 - (NSData*)outputData {
     return [_outputStream propertyForKey:NSStreamDataWrittenToMemoryStreamKey];
