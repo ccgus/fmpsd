@@ -1334,9 +1334,12 @@
 - (BOOL)readImageDataFromStream:(FMPSDStream*)stream lineLengths:(uint16_t *)lineLengths needReadPlanInfo:(BOOL)needsPlaneInfo error:(NSError *__autoreleasing *)err {
     
     FMPSDDebug(@"readImageDataFromStream for %@", _layerName);
-    
-    char* r = nil, *g = nil, *b = nil, *a = nil, *m = nil;
-    
+
+    // In CMYK mode, the r/g/b planes hold cyan/magenta/yellow, plus a black plane (channel id 3).
+    BOOL isCMYK = [_psd colorMode] == FMPSDCMYKMode;
+
+    char* r = nil, *g = nil, *b = nil, *k = nil, *a = nil, *m = nil;
+
     int j = 0;
     
     for (; j < _channels; j++) {
@@ -1380,6 +1383,14 @@
             b = [self readPlaneFromStream:stream lineLengths:lineLengths needReadPlaneInfo:needsPlaneInfo planeNum:j error:err];
             if (!b) {
                 debug(@"reading blue failed.");
+                return NO;
+            }
+        }
+        else if (channelId == 3 && isCMYK) { // k
+            FMPSDDebug(@"reading black");
+            k = [self readPlaneFromStream:stream lineLengths:lineLengths needReadPlaneInfo:needsPlaneInfo planeNum:j error:err];
+            if (!k) {
+                debug(@"reading black failed.");
                 return NO;
             }
         }
@@ -1437,63 +1448,136 @@
         return YES;
     }
     
+    size_t n = _width * _height;
+
     if (!r) {
         r = [[NSMutableData dataWithLength:sizeof(unsigned char) * _width * _height] mutableBytes];
+        if (isCMYK) {
+            memset(r, 255, n); // the channel data is inverted, so 255 is no ink.
+        }
     }
-    
+
     if (!g) {
         g = [[NSMutableData dataWithLength:sizeof(unsigned char) * _width * _height] mutableBytes];
+        if (isCMYK) {
+            memset(g, 255, n);
+        }
     }
-    
+
     if (!b) {
         b = [[NSMutableData dataWithLength:sizeof(unsigned char) * _width * _height] mutableBytes];
+        if (isCMYK) {
+            memset(b, 255, n);
+        }
     }
-    
+
+    if (isCMYK && !k) {
+        k = [[NSMutableData dataWithLength:sizeof(unsigned char) * _width * _height] mutableBytes];
+        memset(k, 255, n);
+    }
+
     if (!a) {
         a = [[NSMutableData dataWithLength:sizeof(unsigned char) * _width * _height] mutableBytes];
         memset(a, 255, _width * _height);
     }
-    
-    
-    size_t n = _width * _height;
     
     if (n) {
         
         CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 8, _width * 4, [_psd colorSpace], (uint32_t)kCGImageAlphaPremultipliedFirst | (uint32_t)kCGBitmapByteOrder32Little);
         
         FMPSDPixel *c = CGBitmapContextGetData(ctx);
-        
-        
+
+
         // OK, we're going to de-plane our image, and premultiply it as well.
         dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0);
-        
+
         int32_t width = _width;
-        dispatch_apply(_height, queue, ^(size_t row) {
-            
-            FMPSDPixel *p = &c[width * row];
-            
-            size_t planeStart = (row * width);
-            int32_t x = 0;
-            while (x < width) {
-                
-                size_t planeLoc = planeStart + x;
-                
-                FMPSDPixelCo ac = a[planeLoc];
-                FMPSDPixelCo rc = r[planeLoc];
-                FMPSDPixelCo gc = g[planeLoc];
-                FMPSDPixelCo bc = b[planeLoc];
-                
-                p->a = ac;
-                
-                p->r = (rc * ac + 127) / 255;
-                p->g = (gc * ac + 127) / 255;
-                p->b = (bc * ac + 127) / 255;
-                
-                p++;
-                x++;
-            }
-        });
-        
+
+        if (isCMYK) {
+
+            // The channel data is stored inverted (0 = 100% ink), which we flip back around
+            // while interleaving the planes. Then we hand the result off to CG with the
+            // document's CMYK profile so we get a color managed conversion to RGB.
+            NSMutableData *cmykData = [NSMutableData dataWithLength:n * 4];
+            uint8_t *cmyk = [cmykData mutableBytes];
+
+            dispatch_apply(_height, queue, ^(size_t row) {
+
+                size_t planeStart = (row * width);
+                int32_t x = 0;
+                while (x < width) {
+
+                    size_t planeLoc = planeStart + x;
+                    uint8_t *d = &cmyk[planeLoc * 4];
+
+                    d[0] = 255 - (uint8_t)r[planeLoc];
+                    d[1] = 255 - (uint8_t)g[planeLoc];
+                    d[2] = 255 - (uint8_t)b[planeLoc];
+                    d[3] = 255 - (uint8_t)k[planeLoc];
+
+                    x++;
+                }
+            });
+
+            CGDataProviderRef provider = CGDataProviderCreateWithCFData((__bridge CFDataRef)cmykData);
+            CGImageRef cmykImage = CGImageCreate(_width, _height, 8, 32, _width * 4, [_psd sourceCMYKColorSpace], (CGBitmapInfo)kCGImageAlphaNone, provider, nil, NO, kCGRenderingIntentDefault);
+            CGDataProviderRelease(provider);
+
+            CGContextSetBlendMode(ctx, kCGBlendModeCopy);
+            CGContextDrawImage(ctx, CGRectMake(0, 0, _width, _height), cmykImage);
+            CGImageRelease(cmykImage);
+
+            // The context is opaque RGB now, so bring in the alpha plane (premultiplying as we go).
+            dispatch_apply(_height, queue, ^(size_t row) {
+
+                FMPSDPixel *p = &c[width * row];
+
+                size_t planeStart = (row * width);
+                int32_t x = 0;
+                while (x < width) {
+
+                    FMPSDPixelCo ac = a[planeStart + x];
+
+                    p->a = ac;
+
+                    p->r = (p->r * ac + 127) / 255;
+                    p->g = (p->g * ac + 127) / 255;
+                    p->b = (p->b * ac + 127) / 255;
+
+                    p++;
+                    x++;
+                }
+            });
+        }
+        else {
+
+            dispatch_apply(_height, queue, ^(size_t row) {
+
+                FMPSDPixel *p = &c[width * row];
+
+                size_t planeStart = (row * width);
+                int32_t x = 0;
+                while (x < width) {
+
+                    size_t planeLoc = planeStart + x;
+
+                    FMPSDPixelCo ac = a[planeLoc];
+                    FMPSDPixelCo rc = r[planeLoc];
+                    FMPSDPixelCo gc = g[planeLoc];
+                    FMPSDPixelCo bc = b[planeLoc];
+
+                    p->a = ac;
+
+                    p->r = (rc * ac + 127) / 255;
+                    p->g = (gc * ac + 127) / 255;
+                    p->b = (bc * ac + 127) / 255;
+
+                    p++;
+                    x++;
+                }
+            });
+        }
+
         _image = CGBitmapContextCreateImage(ctx);
         
         CGContextRelease(ctx);
@@ -1712,10 +1796,23 @@
 }
 
 - (void)setupChannelIdsForCompositeRead {
-    _channelIds[0] = 0;
-    _channelIds[1] = 1;
-    _channelIds[2] = 2;
-    _channelIds[3] = -1;
+
+    if ([_psd colorMode] == FMPSDCMYKMode) {
+        _channelIds[0] = 0; // cyan
+        _channelIds[1] = 1; // magenta
+        _channelIds[2] = 2; // yellow
+        _channelIds[3] = 3; // black
+        if (_channels > 4) {
+            _channelIds[4] = -1; // alpha
+        }
+    }
+    else {
+        _channelIds[0] = 0;
+        _channelIds[1] = 1;
+        _channelIds[2] = 2;
+        _channelIds[3] = -1;
+    }
+
     _isComposite = YES;
 }
 

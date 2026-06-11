@@ -77,6 +77,7 @@ extern BOOL FMPSDPrintDebugInfo;
     CGImageRef _savingCompositeImageRef;
     
     CGColorSpaceRef _colorSpace;
+    CGColorSpaceRef _sourceCMYKColorSpace;
 }
 
 
@@ -102,6 +103,9 @@ extern BOOL FMPSDPrintDebugInfo;
 - (CIImage*)compositeCIImage;
 
 - (void)setSavingCompositeImageRef:(CGImageRef)img;
+
+// The color space the channel data was in on disk, when reading a CMYK mode file. Layer images are converted to RGB.
+- (CGColorSpaceRef)sourceCMYKColorSpace;
 
 @property CGColorSpaceRef colorSpace;
 

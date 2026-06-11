@@ -99,7 +99,12 @@ BOOL FMPSDPrintDebugInfo = NO;
         CGColorSpaceRelease(_colorSpace);
         _colorSpace = nil;
     }
-    
+
+    if (_sourceCMYKColorSpace) {
+        CGColorSpaceRelease(_sourceCMYKColorSpace);
+        _sourceCMYKColorSpace = nil;
+    }
+
 }
 
 - (NSData*)resoultionData {
@@ -209,8 +214,34 @@ BOOL FMPSDPrintDebugInfo = NO;
     CFRelease(imageSourceRef);
     
     _colorSpace = CGColorSpaceRetain(CGImageGetColorSpace(imageRef));
-    
+
+    // If the file is CMYK, hold on to its color space for converting the channel data,
+    // but composite in RGB - our bitmap contexts are all RGBA.
+    if (_colorSpace && CGColorSpaceGetModel(_colorSpace) == kCGColorSpaceModelCMYK) {
+        _sourceCMYKColorSpace = _colorSpace;
+        _colorSpace = nil;
+    }
+
     CGImageRelease(imageRef);
+}
+
+- (CGColorSpaceRef)sourceCMYKColorSpace {
+
+    if (!_sourceCMYKColorSpace && _iccProfile) {
+        CGColorSpaceRef cs = CGColorSpaceCreateWithICCData((__bridge CFDataRef)_iccProfile);
+        if (cs && CGColorSpaceGetModel(cs) == kCGColorSpaceModelCMYK) {
+            _sourceCMYKColorSpace = cs;
+        }
+        else if (cs) {
+            CGColorSpaceRelease(cs);
+        }
+    }
+
+    if (!_sourceCMYKColorSpace) {
+        _sourceCMYKColorSpace = CGColorSpaceCreateDeviceCMYK();
+    }
+
+    return _sourceCMYKColorSpace;
 }
 
 - (BOOL)readDataAtURL:(NSURL*)url error:(NSError *__autoreleasing *)err {
@@ -271,13 +302,15 @@ BOOL FMPSDPrintDebugInfo = NO;
     FMPSDDebug(@"_depth:     %d", _depth);
     FMPSDDebug(@"_colorMode: %d", _colorMode);
     
-    if (_colorMode != FMPSDRGBMode) {
+    BOOL supportedMode = (_colorMode == FMPSDRGBMode) || (_colorMode == FMPSDCMYKMode && _depth == 8);
+
+    if (!supportedMode) {
         NSLog(@"Unsupported color mode (%d)", _colorMode);
         if (err) {
-            
+
             NSString *mode = @"";
             if (_colorMode == FMPSDCMYKMode) {
-                mode = @"CMYK / ";
+                mode = @"CMYK / "; // 8 bits per channel only.
             }
             else if (_colorMode == FMPSDGrayscaleMode) {
                 mode = @"Grayscale / ";
