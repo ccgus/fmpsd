@@ -13,10 +13,12 @@
 #import "FMPSDPackBits.h"
 #import <Accelerate/Accelerate.h>
 #import <ImageIO/ImageIO.h>
+#import <zlib.h>
 
 
 @interface FMPSDLayer()
 @property (strong) NSMutableArray *packedDatas;
+@property (strong) NSMutableArray *readPlaneDatas;
 - (BOOL)readLayerInfo:(FMPSDStream*)stream error:(NSError *__autoreleasing *)err;
 @end
 
@@ -819,6 +821,9 @@
     FMPSDDebug(@"  _channels %d", _channels);
     
     FMAssert(_channels <= 10);
+    if (_channels > 10) {
+        return NO;
+    }
     
     for (int chCount = 0; chCount < _channels; chCount++) {
         int16_t chandId = [stream readInt16];
@@ -1141,190 +1146,172 @@
 }
 
 
-- (char*)parsePlaneCompressed:(FMPSDStream*)stream lineLengths:(uint16_t *)lineLengths planeNum:(int)planeNum isMask:(BOOL)isMask {
-    
-    //NSLog(@"location at parsePlaneCompressed: %ld for planeNum %d", [stream location], planeNum);
-    
-    uint32_t width = _width;
-    uint32_t height = _height;
-    
-    
-    if (isMask) {
-        width = _maskWidth;
-        height = _maskHeight;
-        
-        //debug(@"lineLengths: %d", lineLengths);
+// ZIP prediction is horizontal differencing of big endian samples, reset each row.
+static void FMPSDDecodePrediction(uint8_t *bytes, size_t width, size_t rows, uint16_t depth) {
+    size_t rowBytes = width * (depth / 8);
+    for (size_t y = 0; y < rows; y++) {
+        uint8_t *row = bytes + y * rowBytes;
+        for (size_t x = 1; x < width; x++) {
+            if (depth == 16) {
+                uint16_t previous = ((uint16_t)row[(x - 1) * 2] << 8) | row[(x - 1) * 2 + 1];
+                uint16_t value = (((uint16_t)row[x * 2] << 8) | row[x * 2 + 1]) + previous;
+                row[x * 2] = value >> 8;
+                row[x * 2 + 1] = value & 255;
+            }
+            else {
+                row[x] += row[x - 1];
+            }
+        }
     }
-    
-    //debug(@"width: %d", width);
-    //debug(@"height: %d", height);
-    
-    char *dst = [[NSMutableData dataWithLength:sizeof(char) * (width * height)] mutableBytes];
-    char *src = [[NSMutableData dataWithLength:sizeof(char) * (width * 2)] mutableBytes];
-    
-    //BOOL d = planeNum == 0;
-    
-    int dstIndex = 0;
-    int lineIndex = planeNum * height;
-    for (uint32_t i = 0; i < height; i++) {
-        uint16_t slen = lineLengths[lineIndex++];
-        
-        //debug(@"%d: %d", i, len);
-        
-        FMAssert(!(slen > (width * 2)));
-        
-        [stream readChars:(char*)src maxLength:slen];
-        
-        FMPSDDecodeRLE(src, 0, slen, dst, dstIndex);
-        dstIndex += width;
-    }
-    
-    //NSLog(@"end location at parsePlaneCompressed: %ld for planeNum %d", [stream location], planeNum);
-    
-    return dst;
 }
 
-- (char*)readPlaneFromStream:(FMPSDStream*)stream lineLengths:(uint16_t *)lineLengths needReadPlaneInfo:(BOOL)needReadPlaneInfo planeNum:(int)planeNum  error:(NSError *__autoreleasing *)err {
-    
-    //BOOL rawImageData           = NO;
-    BOOL rleEncoded             = NO;
-    //BOOL zipWithoutPrediction   = NO;
-    //BOOL zipWithPrediction      = NO;
-    
-    long startLoc = [stream location];
-    
-    //debug(@"planeNum: %d, needReadPlaneInfo? %d", planeNum, needReadPlaneInfo);
-    
-    uint32_t thisLength = _channelLens[planeNum];
-    int16_t chanId      = _channelIds[planeNum];
-    
-    long endLoc         = startLoc + thisLength;
-    
-    //FMPSDDebug(@"read length %ld for channel %d", thisLength, chanId);
-    
-    BOOL isMask       = (chanId == -2);
+static NSMutableData *FMPSDInflate(NSData *input, size_t length, NSError **err) {
+    NSMutableData *output = [NSMutableData dataWithLength:length];
+    uLongf outputLength = length;
+    int result = uncompress(output.mutableBytes, &outputLength, input.bytes, input.length);
+    if (result != Z_OK || outputLength != length) {
+        if (err) {
+            *err = [NSError errorWithDomain:@"com.flyingmeat.FMPSD" code:3 userInfo:@{NSLocalizedDescriptionKey: @"Invalid ZIP channel data."}];
+        }
+        return nil;
+    }
+    return output;
+}
+
+- (char *)readPlaneFromStream:(FMPSDStream *)stream lineLengths:(uint16_t *)lineLengths needReadPlaneInfo:(BOOL)needReadPlaneInfo planeNum:(int)planeNum error:(NSError *__autoreleasing *)err {
+    int16_t channelId = _channelIds[planeNum];
+    BOOL isMask = channelId == -2;
+    if ((isMask && (_maskWidth < 0 || _maskHeight < 0)) || (!isMask && (_width < 0 || _height < 0))) {
+        return nil;
+    }
+    size_t width = isMask ? _maskWidth : _width;
+    size_t height = isMask ? _maskHeight : _height;
+    size_t rowBytes = width * ([_psd depth] / 8);
+    size_t length = rowBytes * height;
+    long endLoc = [stream location] + _channelLens[planeNum];
+    uint16_t encoding = lineLengths ? 1 : 0;
+    NSMutableData *data = nil;
+    __attribute__((objc_precise_lifetime)) NSMutableData *counts = nil;
     
     if (needReadPlaneInfo) {
-        uint16_t encoding = [stream readInt16];
-        
-        FMPSDDebug(@"%ld Encoding is %d", [stream location], encoding);
-        
-        //debug(@"encoding: %d", encoding);
-        //NSLog(@"_channelLens: %d", _channelLens[_channels]);
-        
-        thisLength -= 2;
-        
-        if (!thisLength) {
-            //debug(@"empty, returning early");
-            return 0x00;
+        if (_channelLens[planeNum] < 2 || ![stream hasLengthToRead:_channelLens[planeNum]]) {
+            goto invalidData;
         }
-        
-        if (encoding > 3) {
-            
-            FMPSDDebug(@"_layerName: '%@'", _layerName);
-            FMPSDDebug(@"_channels: %d", _channels);
-            FMPSDDebug(@"_channelLens: %d", _channelLens[_channels]);
-            FMPSDDebug(@"planeNum: %d", planeNum);
-
-            NSString *s = [NSString stringWithFormat:@"%s:%d Bad encoding (%d) at offset %ld", __FUNCTION__, __LINE__, encoding, [stream location]];
-        
-            if (err) {
-                *err = [NSError errorWithDomain:@"com.flyingmeat.FMPSD" code:3 userInfo:[NSDictionary dictionaryWithObject:s forKey:NSLocalizedDescriptionKey]];
-                
-                /* scripting BS.  I pass along *err like this:
-                 #0	0x0000000100e6c57f in -[FMPSDLayer readPlaneFromStream:lineLengths:needReadPlaneInfo:planeNum:error:] at /Users/gus/Projects/fmpsd/fmpsd/classes/FMPSDLayer.m:824
-                 #1	0x0000000100e6dc61 in -[FMPSDLayer readImageDataFromStream:lineLengths:needReadPlanInfo:error:] at /Users/gus/Projects/fmpsd/fmpsd/classes/FMPSDLayer.m:913
-                 #2	0x00000001010402e9 in -[FMPSD readDataAtURL:error:] at /Users/gus/Projects/fmpsd/fmpsd/classes/FMPSD.m:330
-                 #3	0x000000010103b466 in +[FMPSD imageWithContetsOfURL:error:printDebugInfo:] at /Users/gus/Projects/fmpsd/fmpsd/classes/FMPSD.m:48
-                 #4	0x000000010103b8dd in +[FMPSD imageWithContetsOfURL:error:] at /Users/gus/Projects/fmpsd/fmpsd/classes/FMPSD.m:64
-                 #5	0x00000001004840e8 in -[TSDocument loadPSDDocument:fileURL:error:] at /Users/gus/Projects/acorn/src/TSDocument.m:2685
-                 #6	0x0000000100763aa2 in -[TSMiscDocument makeUntitledPSDDocumentFromData:ofType:error:] at /Users/gus/Projects/acorn/src/TSMiscDocument.m:264
-                 #7	0x00000001007618c5 in -[TSMiscDocument readFromData:ofType:error:] at /Users/gus/Projects/acorn/src/TSMiscDocument.m:193
-                 #8	0x00007fff8b718184 in -[NSDocument readFromFileWrapper:ofType:error:] ()
-                 #9	0x000000010075ce6a in -[TSMiscDocument readFromFileWrapper:ofType:error:] at /Users/gus/Projects/acorn/src/TSMiscDocument.m:46
-                 #10	0x00007fff8b717fec in -[NSDocument readFromURL:ofType:error:] ()
-                 #11	0x00007fff8b393b15 in -[NSDocument _initWithContentsOfURL:ofType:error:] ()
-                 #12	0x00007fff8b3939f5 in -[NSDocument initWithContentsOfURL:ofType:error:] ()
-                 #13	0x00007fff8b516278 in -[NSDocumentController makeDocumentWithContentsOfURL:ofType:error:] ()
-                 #14	0x00007fff8b758f76 in -[NSDocumentController(NSDeprecated) openDocumentWithContentsOfURL:display:error:] ()
-                 #15	0x00000001026d58bf in -[NSApplication(COSExtras) open:] at /Users/gus/Projects/coscript/src/framework/COSExtras.m:111
-                 
-                 And at some point it gets deallocated.  Which is no good.
-*/
-                
-                
-                CFRetain((__bridge CFTypeRef)*err);
-                
-                debug(@"err: '%@' %p", *err, (void*)err);
+        encoding = [stream readInt16];
+        if (encoding == 1) {
+            if (height > (endLoc - [stream location]) / 2) {
+                goto invalidData;
             }
-                
-            return nil;
-        }
-        
-        //rawImageData         = (encoding == 0);
-        rleEncoded           = (encoding == 1);
-        //zipWithPrediction    = (encoding == 2);
-        //zipWithoutPrediction = (encoding == 3);
-        
-        
-        if (rleEncoded) {
-            if (lineLengths == nil) {
-                
-                int32_t h = (isMask ? _maskHeight : _height);
-                
-                lineLengths = [[NSMutableData dataWithLength:sizeof(uint16_t) * h] mutableBytes];
-                
-                //debug(@"(isMask ? _maskHeight : _height): %d", h);
-                
-                for (int i = 0; i < h; i++) {
-                    lineLengths[i] = [stream readInt16];
-                    //debug(@"lineLengths[%d]: %d %ld", i, lineLengths[i], [stream location]);
-                }
+            counts = [NSMutableData dataWithLength:height * sizeof(uint16_t)];
+            lineLengths = counts.mutableBytes;
+            for (size_t y = 0; y < height; y++) {
+                lineLengths[y] = [stream readInt16];
             }
         }
         planeNum = 0;
     }
-    else {
-        rleEncoded = lineLengths != nil;
-    }
     
-    //debug(@"rleEncoded: %d", rleEncoded);
-    
-    char *channelBitmap = nil;
-    
-    if (rleEncoded) {
-        channelBitmap = [self parsePlaneCompressed:stream lineLengths:lineLengths planeNum:planeNum isMask:isMask];
-    }
-    else {
-        int32_t size = _width * _height;
-        
-        if (isMask) {
-            FMAssert(_maskWidth > 0);
-            FMAssert(_maskHeight > 0);
-            size = _maskWidth * _maskHeight;
+    if (encoding == 0) {
+        if (![stream hasLengthToRead:length] || (needReadPlaneInfo && length > endLoc - [stream location])) {
+            goto invalidData;
         }
-        
-        NSMutableData *d = [stream readDataOfLength:size];
-        channelBitmap = [d mutableBytes];
-        
-        FMAssert([d length] == (NSUInteger)size);
-        
+        data = [stream readDataOfLength:length];
     }
-    
-    FMPSDDebug(@"End of reading channel %d (length %ld). Expected end location: %ld actual %ld (actual length: %ld)", chanId, thisLength, endLoc, [stream location], [stream location] - startLoc);
-    if (!_isComposite && ![[[[NSThread currentThread] threadDictionary] objectForKey:@"TSTesting"] boolValue]) {
-        
-        // Catch cases where the stream was written out a bit more orderly than we expected.
-        // I don't think this is documented anywhere, but Photoshop makes this correction, so maybe FMPSD should as well?
-        // Gus: Check out Case 34435 for an example (it's too big of a PSD to put into the repo for testing).
-        if (([stream location] % 2 == 1) && (endLoc - [stream location] == 1)) {
-            [stream readInt8];
+    else if (encoding == 1) {
+        data = [NSMutableData dataWithLength:length];
+        uint8_t *destination = data.mutableBytes;
+        for (size_t y = 0; y < height; y++) {
+            size_t compressedLength = lineLengths[planeNum * height + y];
+            if (![stream hasLengthToRead:compressedLength] || (needReadPlaneInfo && compressedLength > endLoc - [stream location])) {
+                goto invalidData;
+            }
+            NSData *compressed = [stream readDataOfLength:compressedLength];
+            const uint8_t *source = compressed.bytes;
+            size_t inputIndex = 0, outputIndex = 0;
+            while (inputIndex < compressedLength) {
+                int8_t code = (int8_t)source[inputIndex++];
+                if (code == -128) {
+                    continue;
+                }
+                size_t count = code >= 0 ? code + 1 : 1 - code;
+                size_t inputCount = code >= 0 ? count : 1;
+                if (count > rowBytes - outputIndex || inputCount > compressedLength - inputIndex) {
+                    goto invalidData;
+                }
+                if (code >= 0) {
+                    memcpy(destination + y * rowBytes + outputIndex, source + inputIndex, count);
+                }
+                else {
+                    memset(destination + y * rowBytes + outputIndex, source[inputIndex], count);
+                }
+                inputIndex += inputCount;
+                outputIndex += count;
+            }
+            if (outputIndex != rowBytes) {
+                goto invalidData;
+            }
         }
-        
-        FMAssert(endLoc == [stream location]);
+    }
+    else if ((encoding == 2 || encoding == 3) && needReadPlaneInfo) {
+        data = FMPSDInflate([stream readDataOfLength:endLoc - [stream location]], length, err);
+        if (!data) {
+            return nil;
+        }
+        if (encoding == 3) {
+            FMPSDDecodePrediction(data.mutableBytes, width, height, [_psd depth]);
+        }
+    }
+    else {
+        goto invalidData;
     }
     
-    return channelBitmap;
+    if (needReadPlaneInfo) {
+        if ([stream location] > endLoc) {
+            goto invalidData;
+        }
+        [stream seekToLocation:endLoc];
+    }
+    [self.readPlaneDatas addObject:data];
+    return data.mutableBytes;
+    
+invalidData:
+    if (err) {
+        *err = [NSError errorWithDomain:@"com.flyingmeat.FMPSD" code:3 userInfo:@{NSLocalizedDescriptionKey: @"Invalid or unsupported PSD channel data."}];
+    }
+    return nil;
+}
+
+- (BOOL)readCompositeImageDataFromStream:(FMPSDStream *)stream encoding:(uint16_t)encoding error:(NSError *__autoreleasing *)err {
+    if (encoding == 1) {
+        size_t count = (size_t)_height * _channels;
+        if (![stream hasLengthToRead:count * sizeof(uint16_t)]) {
+            return NO;
+        }
+        __attribute__((objc_precise_lifetime)) NSMutableData *counts = [NSMutableData dataWithLength:count * sizeof(uint16_t)];
+        uint16_t *lineLengths = counts.mutableBytes;
+        for (size_t i = 0; i < count; i++) {
+            lineLengths[i] = [stream readInt16];
+        }
+        return [self readImageDataFromStream:stream lineLengths:lineLengths needReadPlanInfo:NO error:err];
+    }
+    if (encoding == 2 || encoding == 3) {
+        size_t length = (size_t)_width * _height * _channels * ([_psd depth] / 8);
+        NSMutableData *data = FMPSDInflate([stream readToEOF], length, err);
+        if (!data) {
+            return NO;
+        }
+        if (encoding == 3) {
+            FMPSDDecodePrediction(data.mutableBytes, _width, (size_t)_height * _channels, [_psd depth]);
+        }
+        stream = [FMPSDStream PSDStreamForReadingData:data];
+    }
+    else if (encoding != 0) {
+        if (err) {
+            *err = [NSError errorWithDomain:@"com.flyingmeat.FMPSD" code:3 userInfo:@{NSLocalizedDescriptionKey: @"Unsupported composite compression."}];
+        }
+        return NO;
+    }
+    return [self readImageDataFromStream:stream lineLengths:nil needReadPlanInfo:NO error:err];
 }
 
 - (int)channelIdForRow:(int)row {
@@ -1332,6 +1319,17 @@
 }
 
 - (BOOL)readImageDataFromStream:(FMPSDStream*)stream lineLengths:(uint16_t *)lineLengths needReadPlanInfo:(BOOL)needsPlaneInfo error:(NSError *__autoreleasing *)err {
+    // Keep plane buffers alive until Core Graphics has copied the assembled image.
+    self.readPlaneDatas = [NSMutableArray array];
+    @try {
+        return [self assembleImageDataFromStream:stream lineLengths:lineLengths needReadPlanInfo:needsPlaneInfo error:err];
+    }
+    @finally {
+        self.readPlaneDatas = nil;
+    }
+}
+
+- (BOOL)assembleImageDataFromStream:(FMPSDStream*)stream lineLengths:(uint16_t *)lineLengths needReadPlanInfo:(BOOL)needsPlaneInfo error:(NSError *__autoreleasing *)err {
     
     FMPSDDebug(@"readImageDataFromStream for %@", _layerName);
 
@@ -1405,6 +1403,9 @@
             
             if (!m) {
                 debug(@"whoa- m is empty!");
+                if ([_psd depth] == 16) {
+                    return NO;
+                }
             }
             
             long diff = end - [stream location];
@@ -1429,6 +1430,47 @@
         else {
             [stream skipLength:_channelLens[j]];
         }
+    }
+    
+    if ([_psd depth] == 16) {
+        if (m && _maskWidth && _maskHeight) {
+            NSData *maskData = [NSData dataWithBytes:m length:(size_t)_maskWidth * _maskHeight * 2];
+            CGDataProviderRef provider = CGDataProviderCreateWithCFData((__bridge CFDataRef)maskData);
+            CGColorSpaceRef gray = CGColorSpaceCreateWithName(kCGColorSpaceGenericGray);
+            _mask = CGImageCreate(_maskWidth, _maskHeight, 16, 16, _maskWidth * 2, gray, kCGImageAlphaNone | kCGBitmapByteOrder16Big, provider, nil, NO, kCGRenderingIntentDefault);
+            CGColorSpaceRelease(gray);
+            CGDataProviderRelease(provider);
+            if (!_mask) {
+                return NO;
+            }
+        }
+        if (_width <= 0 || _height <= 0) {
+            return YES;
+        }
+        
+        CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 16, (size_t)_width * 8, [_psd colorSpace], kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder16Host);
+        if (!ctx) {
+            return NO;
+        }
+        uint16_t *pixels = CGBitmapContextGetData(ctx);
+        size_t stride = CGBitmapContextGetBytesPerRow(ctx) / sizeof(uint16_t);
+        dispatch_apply(_height, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^(size_t row) {
+            for (size_t x = 0; x < (size_t)_width; x++) {
+                size_t offset = (row * _width + x) * 2;
+                uint16_t alpha = a ? ((uint16_t)(uint8_t)a[offset] << 8) | (uint8_t)a[offset + 1] : UINT16_MAX;
+                char *planes[] = {r, g, b};
+                uint16_t *pixel = pixels + row * stride + x * 4;
+                for (size_t channel = 0; channel < 3; channel++) {
+                    char *plane = planes[channel];
+                    uint16_t value = plane ? ((uint16_t)(uint8_t)plane[offset] << 8) | (uint8_t)plane[offset + 1] : 0;
+                    pixel[channel] = ((uint32_t)value * alpha + 32767) / UINT16_MAX;
+                }
+                pixel[3] = alpha;
+            }
+        });
+        _image = CGBitmapContextCreateImage(ctx);
+        CGContextRelease(ctx);
+        return _image != nil;
     }
     
     if (m) {

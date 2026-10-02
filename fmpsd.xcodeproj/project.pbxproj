@@ -283,6 +283,7 @@
 			buildSettings = {
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "fmpsd/fmpsd-Prefix.pch";
+				OTHER_LDFLAGS = "$(inherited) -lz";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -292,6 +293,7 @@
 			buildSettings = {
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "fmpsd/fmpsd-Prefix.pch";
+				OTHER_LDFLAGS = "$(inherited) -lz";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

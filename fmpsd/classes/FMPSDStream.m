@@ -380,19 +380,8 @@
 
 - (NSData*)readToEOF {
     
-    NSMutableData *data = [NSMutableData data];
+    return [self readDataOfLength:[_inputDataStream length] - _location];
     
-    int buffSize = 1024;
-    NSInteger read;
-    char *c = malloc(sizeof(char) * buffSize);
-    
-    while ((read = [self readChars:c maxLength:buffSize]) > 0) {
-        [data appendBytes:c length:read];
-    }
-    
-    free(c);
-    
-    return data;
 }
 
 - (void)writeInt64:(uint64_t)value {

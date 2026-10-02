@@ -81,6 +81,7 @@
 + (instancetype)layerWithSize:(CGSize)s psd:(FMPSD*)psd;
 + (instancetype)baseLayer;
 
+- (BOOL)readCompositeImageDataFromStream:(FMPSDStream *)stream encoding:(uint16_t)encoding error:(NSError *__autoreleasing *)err;
 - (BOOL)readImageDataFromStream:(FMPSDStream*)stream lineLengths:(uint16_t *)lineLengths needReadPlanInfo:(BOOL)needsPlaneInfo error:(NSError *__autoreleasing *)err;
 - (void)writeLayerInfoToStream:(FMPSDStream*)stream;
 - (void)writeImageDataToStream:(FMPSDStream*)stream;

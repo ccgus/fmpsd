@@ -244,6 +244,94 @@ BOOL FMPSDPrintDebugInfo = NO;
     return _sourceCMYKColorSpace;
 }
 
+- (BOOL)readLayersFromStream:(FMPSDStream *)stream error:(NSError *__autoreleasing *)err {
+    
+    int layerCt = (int16_t)[stream readInt16]; // Layer count. If it is a negative number, its absolute value is the number of layers and the first alpha channel contains the transparency data for the merged result.
+    
+    layerCt = abs(layerCt);
+    
+    FMPSDDebug(@"layer count: %d", layerCt);
+    
+    if (layerCt) {
+        
+        NSMutableArray *layers = [NSMutableArray array];
+        
+        for (int i = 0; i < layerCt; i++) {
+            
+            FMPSDLayer *layer = [FMPSDLayer layerWithStream:stream psd:self error:err];
+            
+            if (layer) {
+                [layers addObject:layer];
+            }
+            else {
+                debug(@"Could not read layer %d", i);
+                return NO;
+            }
+            
+            
+        }
+        
+        int idx = 0;
+        for (FMPSDLayer *layer in layers) {
+            NSError *layerError = nil;
+            BOOL readImageData = NO;
+            @autoreleasepool {
+                readImageData = [layer readImageDataFromStream:stream lineLengths:nil needReadPlanInfo:YES error:&layerError];
+            }
+            if (!readImageData) {
+                NSLog(@"Could not read data for layer #%d '%@'", idx, [layer layerName]);
+                if (err) {
+                    *err = layerError;
+                }
+                return NO;
+            }
+        }
+        
+        _baseLayerGroup = [FMPSDLayer baseLayer];
+        
+        FMPSDLayer *currentGroup = _baseLayerGroup;
+        
+        // now organize the groups.
+        for (FMPSDLayer *layer in [layers reverseObjectEnumerator]) {
+            
+            //debug(@"[layer dividerType]: %d", [layer dividerType]);
+            
+            switch ([layer dividerType]) {
+                
+                case FMPSDLayerTypeNormal:
+                    debug(@"NORMAL %@", [layer layerName]);
+                    [currentGroup addLayerToGroup:layer];
+                    break;
+                case FMPSDLayerTypeFolder:
+                    debug(@"FOLDER %@", [layer layerName]);
+                    [layer setIsGroup:YES];
+                    [currentGroup addLayerToGroup:layer];
+                    [layer setParent:currentGroup];
+                    
+                    currentGroup = layer;
+                    
+                    break;
+                case FMPSDLayerTypeHidden:
+                    debug(@"HIDDEN %@", [layer layerName]);
+                    
+                    currentGroup = [currentGroup parent];
+                    
+                    break;
+                    
+                default:
+                    debug(@"[layer dividerType]: %d", [layer dividerType]);
+                    FMAssert(NO);
+            }
+            
+        }
+        
+        [_baseLayerGroup printTree:@""];
+        
+    }
+    
+    return YES;
+}
+
 - (BOOL)readDataAtURL:(NSURL*)url error:(NSError *__autoreleasing *)err {
     
     FMPSDDebug(@"Opening stream at %@", [url path]);
@@ -296,13 +384,20 @@ BOOL FMPSDPrintDebugInfo = NO;
     _depth      = [stream readInt16];
     _colorMode  = [stream readInt16];
     
+    if (_channels < 3 || _channels > 10 || !_width || !_height || _width > 30000 || _height > 30000) {
+        if (err) {
+            *err = [NSError errorWithDomain:@"8BPS" code:1 userInfo:@{NSLocalizedDescriptionKey: @"Unsupported PSD dimensions or channel count."}];
+        }
+        return NO;
+    }
+    
     FMPSDDebug(@"_channels:  %d", _channels);
     FMPSDDebug(@"_height:    %d", _height);
     FMPSDDebug(@"_width:     %d", _width);
     FMPSDDebug(@"_depth:     %d", _depth);
     FMPSDDebug(@"_colorMode: %d", _colorMode);
     
-    BOOL supportedMode = (_colorMode == FMPSDRGBMode) || (_colorMode == FMPSDCMYKMode && _depth == 8);
+    BOOL supportedMode = (_colorMode == FMPSDRGBMode && (_depth == 8 || _depth == 16)) || (_colorMode == FMPSDCMYKMode && _depth == 8);
 
     if (!supportedMode) {
         NSLog(@"Unsupported color mode (%d)", _colorMode);
@@ -411,6 +506,9 @@ BOOL FMPSDPrintDebugInfo = NO;
     // Layer and Mask Information Section
     uint32_t layerAndMaskInformationSectionLength = [stream readInt32];
     long pos = [stream location];
+    if (![stream hasLengthToRead:layerAndMaskInformationSectionLength]) {
+        return NO;
+    }
     
     FMPSDDebug(@"layer and mask info length: %d", layerAndMaskInformationSectionLength);
     
@@ -426,94 +524,52 @@ BOOL FMPSDPrintDebugInfo = NO;
         
         if (layerInfoLen > 0) {
             
-            int16_t layerCt = [stream readInt16]; // Layer count. If it is a negative number, its absolute value is the number of layers and the first alpha channel contains the transparency data for the merged result.
-            
-            layerCt = abs(layerCt);
-            
-            FMPSDDebug(@"layer count: %d", layerCt);
-            
-            if (layerCt) {
-                
-                NSMutableArray *layers = [NSMutableArray array];
-                
-                for (int i = 0; i < layerCt; i++) {
-                    
-                    FMPSDLayer *layer = [FMPSDLayer layerWithStream:stream psd:self error:err];
-                    
-                    if (layer) {
-                        [layers addObject:layer];
-                    }
-                    else {
-                        debug(@"Could not read layer %d", i);
-                    }
-                    
-                    
-                }
-                
-                int idx = 0;
-                for (FMPSDLayer *layer in layers) @autoreleasepool {
-                    if (![layer readImageDataFromStream:stream lineLengths:nil needReadPlanInfo:YES error:err]) {
-                        NSLog(@"Could not read data for layer #%d '%@'", idx, [layer layerName]);
-                        return NO;
-                    }
-                }
-                
-                _baseLayerGroup = [FMPSDLayer baseLayer];
-                
-                FMPSDLayer *currentGroup = _baseLayerGroup;
-                
-                // now organize the groups.
-                for (FMPSDLayer *layer in [layers reverseObjectEnumerator]) {
-                    
-                    //debug(@"[layer dividerType]: %d", [layer dividerType]);
-                    
-                    switch ([layer dividerType]) {
-                        
-                        case FMPSDLayerTypeNormal:
-                            debug(@"NORMAL %@", [layer layerName]);
-                            [currentGroup addLayerToGroup:layer];
-                            break;
-                        case FMPSDLayerTypeFolder:
-                            debug(@"FOLDER %@", [layer layerName]);
-                            [layer setIsGroup:YES];
-                            [currentGroup addLayerToGroup:layer];
-                            [layer setParent:currentGroup];
-                            
-                            currentGroup = layer;
-                            
-                            break;
-                        case FMPSDLayerTypeHidden:
-                            debug(@"HIDDEN %@", [layer layerName]);
-                            
-                            currentGroup = [currentGroup parent];
-                            
-                            break;
-                        
-                        default:
-                            debug(@"[layer dividerType]: %d", [layer dividerType]);
-                            FMAssert(NO);
-                    }
-                    
-                }
-                
-                [_baseLayerGroup printTree:@""];
-                
+            if (![self readLayersFromStream:stream error:err]) {
+                return NO;
             }
+            
         }
         
-        long globalMaskSize = layerAndMaskInformationSectionLength - ([stream location] - pos);
-        FMPSDDebug(@"globalMaskSize: %ld", globalMaskSize);
+        long layerInfoEnd = pos + 4 + layerInfoLen;
+        long sectionEnd = pos + layerAndMaskInformationSectionLength;
+        if (layerInfoEnd > sectionEnd || [stream location] > layerInfoEnd) {
+            return NO;
+        }
+        [stream seekToLocation:layerInfoEnd];
         
-        if (globalMaskSize > 0) { // we had a file that would crash on this guy ("320_skyline_header.psd") - message id: <DA2BE636-DB95-418E-A9BC-3127AB44FF0A@hassetthome.org> in Gus's mu.org email- December 14, 2011
+        if (sectionEnd - [stream location] >= 4) {
+            uint32_t globalMaskSize = [stream readInt32];
+            if (globalMaskSize > sectionEnd - [stream location]) {
+                return NO;
+            }
             [stream skipLength:globalMaskSize];
         }
         
+        // High depth documents store their layer records and channels in Lr16.
+        while (sectionEnd - [stream location] >= 12) {
+            uint32_t signature = [stream readInt32];
+            uint32_t key = [stream readInt32];
+            uint32_t length = [stream readInt32];
+            if ((signature != '8BIM' && signature != '8B64') || length > sectionEnd - [stream location]) {
+                return NO;
+            }
+            long blockEnd = [stream location] + length;
+            if (key == 'Lr16' && _depth == 16 && length >= 2) {
+                if (![self readLayersFromStream:stream error:err] || [stream location] > blockEnd) {
+                    return NO;
+                }
+            }
+            // Global tagged blocks are padded to a multiple of four bytes.
+            long paddedEnd = blockEnd + ((4 - (length % 4)) % 4);
+            [stream seekToLocation:MIN(paddedEnd, sectionEnd)];
+        }
+        [stream seekToLocation:sectionEnd];
     }
     
     BOOL isRuningUnitTest = [[[[NSThread currentThread] threadDictionary] objectForKey:@"TSTesting"] boolValue];
     
     
-    if (!isRuningUnitTest && ![[_baseLayerGroup layers] count]) {
+    if (_depth == 8 && !isRuningUnitTest && ![[_baseLayerGroup layers] count]) {
         // let the system take care of it- There's no layers, it's probably just the composite layer, and it's pretty funky sometimes.
         // https://flyingmeat.fogbugz.com/default.asp?16104#152097 for example
         return NO;
@@ -528,26 +584,10 @@ BOOL FMPSDPrintDebugInfo = NO;
     
     // rgba for composites
     
-    BOOL rle = [stream readInt16] == 1;
-    
-    FMPSDDebug(@"Reading composite, is rle? %d", rle);
-    
-    if (rle) {
-        uint32_t nLines = _height * _channels;
-        uint16_t *lineLengths = malloc(sizeof(uint16_t) * nLines);
-        
-        for (uint32_t i = 0; i < nLines; i++) {
-            lineLengths[i] = [stream readInt16];
-        }
-        
-        [layer readImageDataFromStream:stream lineLengths:lineLengths needReadPlanInfo:NO error:err];
-        
-        free(lineLengths);
+    uint16_t encoding = [stream readInt16];
+    if (![layer readCompositeImageDataFromStream:stream encoding:encoding error:err]) {
+        return NO;
     }
-    else {
-        [layer readImageDataFromStream:stream lineLengths:0x00 needReadPlanInfo:NO error:err];
-    }
-    
     
     if (![[_baseLayerGroup layers] count]) {
         [layer setLayerName:@"Background"];
