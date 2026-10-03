@@ -566,15 +566,6 @@ BOOL FMPSDPrintDebugInfo = NO;
         [stream seekToLocation:sectionEnd];
     }
     
-    BOOL isRuningUnitTest = [[[[NSThread currentThread] threadDictionary] objectForKey:@"TSTesting"] boolValue];
-    
-    
-    if (_depth == 8 && !isRuningUnitTest && ![[_baseLayerGroup layers] count]) {
-        // let the system take care of it- There's no layers, it's probably just the composite layer, and it's pretty funky sometimes.
-        // https://flyingmeat.fogbugz.com/default.asp?16104#152097 for example
-        return NO;
-    }
-    
     FMPSDDebug(@"location when reading in composite: %ld", [stream location]);
     
     FMPSDLayer *layer = [FMPSDLayer layerWithSize:CGSizeMake(_width, _height) psd:self];
