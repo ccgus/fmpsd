@@ -1,0 +1,26 @@
+{
+  "configurations" : [
+    {
+      "id" : "001A8BA5-BD52-49EF-9DB5-4C6C99F80AAB",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "testInteropMode" : "complete"
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : false,
+      "target" : {
+        "containerPath" : "container:fmpsd.xcodeproj",
+        "identifier" : "CC2F3E9E3071755C00E74499",
+        "name" : "tests"
+      }
+    }
+  ],
+  "version" : 1
+}
