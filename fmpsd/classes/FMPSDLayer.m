@@ -176,19 +176,18 @@
     }
 }
 
-- (void)writeDropShadowDescriptorToStream:(FMPSDStream *)stream {
-    FMPSDDescriptor *drsh = [self dropShadow];
-    NSDictionary *attrs = [drsh attributes];
+- (void)writeEffectDescriptor:(FMPSDDescriptor *)effect classId:(uint32_t)classId additionalItemCount:(uint32_t)additionalItemCount toStream:(FMPSDStream *)stream {
+    NSDictionary *attrs = [effect attributes];
 
     // Descriptor name (empty unicode string)
     [self writePSDDescriptorString:@"" toStream:stream];
-    // ClassID for DrSh
-    [stream writePSDStringOrFourByteID:'DrSh'];
+    // Effect ClassID
+    [stream writePSDStringOrFourByteID:classId];
 
     // Count the items we'll write
-    // enab, Md  , Clr , Opct, uglg, lagl, Dstn, Ckmt, blur = 9 items
+    // Common items: enab, Md  , optional Clr , Opct
     FMPSDDescriptor *colorDesc = [attrs objectForKey:@"Clr "];
-    uint32_t itemCount = colorDesc ? 9 : 8;
+    uint32_t itemCount = (colorDesc ? 4 : 3) + additionalItemCount;
     [stream writeInt32:itemCount];
 
     // enab - bool
@@ -209,7 +208,7 @@
         [stream writeChars:(char *)cstr length:len];
     }
     else {
-        [stream writePSDStringOrFourByteID:'Mltp']; // Default to Multiply
+        [stream writePSDStringOrFourByteID:classId == 'DrSh' ? 'Mltp' : 'Nrml'];
     }
 
     // Clr  - Objc (color descriptor)
@@ -243,6 +242,13 @@
     [stream writeInt32:'UntF'];
     [stream writeInt32:'#Prc'];
     [stream writeDouble64:[[attrs objectForKey:@"Opct"] doubleValue]];
+
+}
+
+- (void)writeDropShadowDescriptorToStream:(FMPSDStream *)stream {
+    FMPSDDescriptor *drsh = [self dropShadow];
+    NSDictionary *attrs = [drsh attributes];
+    [self writeEffectDescriptor:drsh classId:'DrSh' additionalItemCount:5 toStream:stream];
 
     // uglg - bool (use global light)
     [stream writePSDStringOrFourByteID:'uglg'];
@@ -281,9 +287,10 @@
     // ClassID
     [stream writePSDStringOrFourByteID:'null'];
 
-    // Item count - just DrSh for now
+    // Count supported effects, including disabled effects.
     BOOL hasDrSh = [[_layerEffects attributes] objectForKey:@"DrSh"] != nil;
-    uint32_t effectCount = 0;
+    BOOL hasSoFi = [self colorOverlay] != nil;
+    uint32_t effectCount = hasSoFi ? 1 : 0;
     if (hasDrSh) {
         effectCount++;
     }
@@ -296,6 +303,11 @@
         [stream writeInt32:'Objc'];
         // Write the descriptor
         [self writeDropShadowDescriptorToStream:stream];
+    }
+    if (hasSoFi) {
+        [stream writePSDStringOrFourByteID:'SoFi'];
+        [stream writeInt32:'Objc'];
+        [self writeEffectDescriptor:[self colorOverlay] classId:'SoFi' additionalItemCount:0 toStream:stream];
     }
 }
 
@@ -487,8 +499,8 @@
         
         free(buffer);
 
-        // Layer effects (lfx2) - drop shadow
-        if (_layerEffects && [[_layerEffects attributes] objectForKey:@"DrSh"]) {
+        // Layer effects (lfx2)
+        if ([self dropShadow] || [self colorOverlay]) {
             [extraDataStream writeInt32:'8BIM'];
             [extraDataStream writeInt32:'lfx2'];
 
@@ -1199,7 +1211,7 @@ static NSMutableData *FMPSDInflate(NSData *input, size_t length, NSError **err) 
         }
         encoding = [stream readInt16];
         if (encoding == 1) {
-            if (height > (endLoc - [stream location]) / 2) {
+            if (height > (size_t)(endLoc - [stream location]) / 2) {
                 goto invalidData;
             }
             counts = [NSMutableData dataWithLength:height * sizeof(uint16_t)];
@@ -1212,7 +1224,7 @@ static NSMutableData *FMPSDInflate(NSData *input, size_t length, NSError **err) 
     }
     
     if (encoding == 0) {
-        if (![stream hasLengthToRead:length] || (needReadPlaneInfo && length > endLoc - [stream location])) {
+        if (![stream hasLengthToRead:length] || (needReadPlaneInfo && length > (size_t)(endLoc - [stream location]))) {
             goto invalidData;
         }
         data = [stream readDataOfLength:length];
@@ -1222,7 +1234,7 @@ static NSMutableData *FMPSDInflate(NSData *input, size_t length, NSError **err) 
         uint8_t *destination = data.mutableBytes;
         for (size_t y = 0; y < height; y++) {
             size_t compressedLength = lineLengths[planeNum * height + y];
-            if (![stream hasLengthToRead:compressedLength] || (needReadPlaneInfo && compressedLength > endLoc - [stream location])) {
+            if (![stream hasLengthToRead:compressedLength] || (needReadPlaneInfo && compressedLength > (size_t)(endLoc - [stream location]))) {
                 goto invalidData;
             }
             NSData *compressed = [stream readDataOfLength:compressedLength];
@@ -1952,6 +1964,72 @@ invalidData:
     FMPSDDescriptor *drsh = [[_layerEffects attributes] objectForKey:@"DrSh"];
     if (drsh && [drsh isKindOfClass:[FMPSDDescriptor class]]) {
         return drsh;
+    }
+    
+    return nil;
+}
+
+- (void)setColorOverlayEnabled:(BOOL)enabled color:(CGColorRef)color opacity:(double)opacity {
+
+    if (!_layerEffects) {
+        _layerEffects = [[FMPSDDescriptor alloc] init];
+        [_layerEffects setAttributes:[NSMutableDictionary dictionary]];
+    }
+
+    FMPSDDescriptor *overlay = [[FMPSDDescriptor alloc] init];
+    [overlay setAttributes:[NSMutableDictionary dictionary]];
+
+    [[overlay attributes] setObject:@(enabled) forKey:@"enab"];
+    [[overlay attributes] setObject:@"Nrml" forKey:@"Md  "]; // Normal blend mode
+    [[overlay attributes] setObject:@(opacity) forKey:@"Opct"];
+
+    if (color) {
+        const CGFloat *components = CGColorGetComponents(color);
+        NSUInteger numComponents = CGColorGetNumberOfComponents(color);
+
+        FMPSDDescriptor *colorDesc = [[FMPSDDescriptor alloc] init];
+        [colorDesc setAttributes:[NSMutableDictionary dictionary]];
+
+        if (numComponents >= 3) {
+            [[colorDesc attributes] setObject:@(components[0] * 255.0) forKey:@"Rd  "];
+            [[colorDesc attributes] setObject:@(components[1] * 255.0) forKey:@"Grn "];
+            [[colorDesc attributes] setObject:@(components[2] * 255.0) forKey:@"Bl  "];
+        }
+        else {
+            // Grayscale
+            [[colorDesc attributes] setObject:@(components[0] * 255.0) forKey:@"Rd  "];
+            [[colorDesc attributes] setObject:@(components[0] * 255.0) forKey:@"Grn "];
+            [[colorDesc attributes] setObject:@(components[0] * 255.0) forKey:@"Bl  "];
+        }
+
+        [[overlay attributes] setObject:colorDesc forKey:@"Clr "];
+    }
+
+    [[_layerEffects attributes] setObject:overlay forKey:@"SoFi"];
+}
+
+- (BOOL)hasColorOverlay {
+    if (!_layerEffects) {
+        return NO;
+    }
+    
+    FMPSDDescriptor *overlay = [[_layerEffects attributes] objectForKey:@"SoFi"];
+    if (overlay && [overlay isKindOfClass:[FMPSDDescriptor class]]) {
+        NSNumber *enabled = [[overlay attributes] objectForKey:@"enab"];
+        return [enabled boolValue];
+    }
+    
+    return NO;
+}
+
+- (FMPSDDescriptor *)colorOverlay {
+    if (!_layerEffects) {
+        return nil;
+    }
+    
+    FMPSDDescriptor *overlay = [[_layerEffects attributes] objectForKey:@"SoFi"];
+    if (overlay && [overlay isKindOfClass:[FMPSDDescriptor class]]) {
+        return overlay;
     }
     
     return nil;

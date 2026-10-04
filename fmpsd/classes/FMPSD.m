@@ -579,18 +579,18 @@ BOOL FMPSDPrintDebugInfo = NO;
         while (sectionEnd - [stream location] >= 12) {
             uint32_t signature = [stream readInt32];
             uint32_t key = [stream readInt32];
-            uint32_t length = [stream readInt32];
-            if ((signature != '8BIM' && signature != '8B64') || length > sectionEnd - [stream location]) {
+            uint32_t sectionLength = [stream readInt32];
+            if ((signature != '8BIM' && signature != '8B64') || sectionLength > sectionEnd - [stream location]) {
                 return NO;
             }
-            long blockEnd = [stream location] + length;
-            if (key == 'Lr16' && _depth == 16 && length >= 2) {
+            long blockEnd = [stream location] + sectionLength;
+            if (key == 'Lr16' && _depth == 16 && sectionLength >= 2) {
                 if (![self readLayersFromStream:stream error:err] || [stream location] > blockEnd) {
                     return NO;
                 }
             }
             // Global tagged blocks are padded to a multiple of four bytes.
-            long paddedEnd = blockEnd + ((4 - (length % 4)) % 4);
+            long paddedEnd = blockEnd + ((4 - (sectionLength % 4)) % 4);
             [stream seekToLocation:MIN(paddedEnd, sectionEnd)];
         }
         [stream seekToLocation:sectionEnd];

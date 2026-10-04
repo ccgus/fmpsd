@@ -34,6 +34,8 @@
 		CCF682FB17724EB800478D7A /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CCF682FA17724EB800478D7A /* Foundation.framework */; };
 		CCF682FE17724EB800478D7A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = CCF682FD17724EB800478D7A /* main.m */; };
 		CCF6830217724EB800478D7A /* fmpsd.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = CCF6830117724EB800478D7A /* fmpsd.1 */; };
+		F04C01000000000000000001 /* FMPSDDescriptor+ColorOverlay.m in Sources */ = {isa = PBXBuildFile; fileRef = F04C01000000000000000004 /* FMPSDDescriptor+ColorOverlay.m */; };
+		F04C01000000000000000002 /* FMPSDDescriptor+ColorOverlay.m in Sources */ = {isa = PBXBuildFile; fileRef = F04C01000000000000000004 /* FMPSDDescriptor+ColorOverlay.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -80,6 +82,8 @@
 		CCF6830017724EB800478D7A /* fmpsd-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "fmpsd-Prefix.pch"; sourceTree = "<group>"; };
 		CCF6830117724EB800478D7A /* fmpsd.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = fmpsd.1; sourceTree = "<group>"; };
 		EA67EED036DB969B08F518C9 /* FMPSDDescriptor+DropShadow.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = "FMPSDDescriptor+DropShadow.m"; path = "classes/FMPSDDescriptor+DropShadow.m"; sourceTree = "<group>"; };
+		F04C01000000000000000003 /* FMPSDDescriptor+ColorOverlay.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = "FMPSDDescriptor+ColorOverlay.h"; path = "classes/FMPSDDescriptor+ColorOverlay.h"; sourceTree = "<group>"; };
+		F04C01000000000000000004 /* FMPSDDescriptor+ColorOverlay.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = "FMPSDDescriptor+ColorOverlay.m"; path = "classes/FMPSDDescriptor+ColorOverlay.m"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -158,24 +162,26 @@
 		CCF682FC17724EB800478D7A /* fmpsd */ = {
 			isa = PBXGroup;
 			children = (
+				CCF6830117724EB800478D7A /* fmpsd.1 */,
 				CC4381A7177251AF009D82C3 /* FMPSD.h */,
 				CC4381A8177251AF009D82C3 /* FMPSD.m */,
-				CC16D872221B659A001646EB /* FMPSDPackBits.h */,
-				CC16D873221B659A001646EB /* FMPSDPackBits.m */,
 				CC4381AB177251AF009D82C3 /* FMPSDDescriptor.h */,
 				CC4381AC177251AF009D82C3 /* FMPSDDescriptor.m */,
+				F04C01000000000000000003 /* FMPSDDescriptor+ColorOverlay.h */,
+				F04C01000000000000000004 /* FMPSDDescriptor+ColorOverlay.m */,
 				780716CE34357AC83DE62592 /* FMPSDDescriptor+DropShadow.h */,
 				EA67EED036DB969B08F518C9 /* FMPSDDescriptor+DropShadow.m */,
 				CC4381AD177251AF009D82C3 /* FMPSDLayer.h */,
 				CC4381AE177251AF009D82C3 /* FMPSDLayer.m */,
+				CC16D872221B659A001646EB /* FMPSDPackBits.h */,
+				CC16D873221B659A001646EB /* FMPSDPackBits.m */,
 				CC4381AF177251AF009D82C3 /* FMPSDStream.h */,
 				CC4381B0177251AF009D82C3 /* FMPSDStream.m */,
-				CC4381B1177251AF009D82C3 /* FMPSDUtils.h */,
-				CC4381B2177251AF009D82C3 /* FMPSDUtils.m */,
 				AEB344A617BE3ECB00335650 /* FMPSDTextEngineParser.h */,
 				AEB344A717BE3ECB00335650 /* FMPSDTextEngineParser.m */,
+				CC4381B1177251AF009D82C3 /* FMPSDUtils.h */,
+				CC4381B2177251AF009D82C3 /* FMPSDUtils.m */,
 				CCF682FD17724EB800478D7A /* main.m */,
-				CCF6830117724EB800478D7A /* fmpsd.1 */,
 				CCF682FF17724EB800478D7A /* Supporting Files */,
 			);
 			path = fmpsd;
@@ -285,6 +291,7 @@
 				CC2F3EB33071805000E74499 /* FMPSDLayer.m in Sources */,
 				CC2F3EB43071805000E74499 /* FMPSDUtils.m in Sources */,
 				CC2F3EB53071805000E74499 /* FMPSDDescriptor+DropShadow.m in Sources */,
+				F04C01000000000000000002 /* FMPSDDescriptor+ColorOverlay.m in Sources */,
 				CC2F3EB63071805000E74499 /* FMPSDStream.m in Sources */,
 				CC2F3EB73071805000E74499 /* FMPSDTextEngineParser.m in Sources */,
 				CC2F3EAF3071803D00E74499 /* FMPSD.m in Sources */,
@@ -306,6 +313,7 @@
 				CCF682FE17724EB800478D7A /* main.m in Sources */,
 				AEB344A817BE3ECB00335650 /* FMPSDTextEngineParser.m in Sources */,
 				335F2A5DF473CB1FE1F7C263 /* FMPSDDescriptor+DropShadow.m in Sources */,
+				F04C01000000000000000001 /* FMPSDDescriptor+ColorOverlay.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

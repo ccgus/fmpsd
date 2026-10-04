@@ -9,6 +9,8 @@
 #import <XCTest/XCTest.h>
 #import "FMPSD.h"
 #import "FMPSDUtils.h"
+#import "FMPSDDescriptor+ColorOverlay.h"
+#import "FMPSDDescriptor+DropShadow.h"
 #import "FMPSDTextEngineParser.h"
 #import <ImageIO/ImageIO.h>
 
@@ -54,6 +56,58 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
         self.temporaryDirectory = nil;
     }
     [super tearDown];
+}
+
+- (void)testColorOverlayRoundTrip {
+    for (NSUInteger variant = 0; variant < 4; variant++) {
+        FMPSDLayer *layer = [FMPSDLayer layerWithSize:CGSizeMake(1, 1) psd:nil];
+        layer.layerName = @"Effects";
+        XCTAssertFalse(layer.hasColorOverlay);
+        XCTAssertNil(layer.colorOverlay);
+        
+        CGColorRef color = variant == 2 ? CGColorCreateGenericGray(0.4, 1.0) : CGColorCreateGenericRGB(0.2, 0.5, 0.8, 1.0);
+        BOOL enabled = variant != 1;
+        [layer setColorOverlayEnabled:enabled color:variant == 3 ? NULL : color opacity:37.5];
+        if (variant == 1) {
+            [layer.colorOverlay.attributes setObject:@"linearBurn" forKey:@"Md  "];
+        }
+        if (variant > 0) {
+            [layer setDropShadowEnabled:YES color:color opacity:60 angle:120 distance:8 size:4];
+        }
+        CGColorRelease(color);
+        
+        FMPSDStream *output = [FMPSDStream PSDStreamForWritingToMemory];
+        [layer writeLayerInfoToStream:output];
+        FMPSDStream *input = [FMPSDStream PSDStreamForReadingData:output.outputData];
+        NSError *error = nil;
+        FMPSDLayer *readLayer = [FMPSDLayer layerWithStream:input psd:nil error:&error];
+        XCTAssertNotNil(readLayer, @"%@", error);
+        XCTAssertNotNil(readLayer.colorOverlay);
+        XCTAssertEqual(readLayer.hasColorOverlay, enabled);
+        XCTAssertEqual(readLayer.colorOverlay.colorOverlayEnabled, enabled);
+        XCTAssertEqualWithAccuracy(readLayer.colorOverlay.colorOverlayOpacity, 37.5, 0.001);
+        XCTAssertEqual(readLayer.colorOverlay.colorOverlayBlendMode, variant == 1 ? 'lbrn' : 'norm');
+        XCTAssertEqual(readLayer.hasDropShadow, variant > 0);
+        if (variant > 0) {
+            XCTAssertEqualWithAccuracy(readLayer.dropShadow.dropShadowDistance, 8, 0.001);
+            XCTAssertEqualWithAccuracy(readLayer.dropShadow.dropShadowOpacity, 60, 0.001);
+        }
+        CGColorRef readColor = readLayer.colorOverlay.colorOverlayColor;
+        if (variant == 3) {
+            XCTAssertTrue(readColor == NULL);
+        }
+        else {
+            XCTAssertTrue(readColor != NULL);
+            if (readColor) {
+                const CGFloat *components = CGColorGetComponents(readColor);
+                XCTAssertEqualWithAccuracy(components[0], variant == 2 ? 0.4 : 0.2, 0.001);
+                XCTAssertEqualWithAccuracy(components[1], variant == 2 ? 0.4 : 0.5, 0.001);
+                XCTAssertEqualWithAccuracy(components[2], variant == 2 ? 0.4 : 0.8, 0.001);
+            }
+        }
+        [input close];
+        [output close];
+    }
 }
 
 - (void)testPreviewMade {
