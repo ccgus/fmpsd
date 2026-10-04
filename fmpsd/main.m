@@ -9,6 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <QuartzCore/QuartzCore.h>
 #import <AppKit/NSWorkspace.h>
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import "FMPSD.h"
 
 
@@ -33,7 +34,7 @@ void splitPSDFile(NSString *path) {
         
         NSString *layerPath = [NSString stringWithFormat:@"%@-%@.png", path, [l layerName]];
         
-        CGImageDestinationRef imageDestination = CGImageDestinationCreateWithURL((__bridge CFURLRef)[NSURL fileURLWithPath:layerPath], kUTTypePNG, 1, NULL);
+        CGImageDestinationRef imageDestination = CGImageDestinationCreateWithURL((__bridge CFURLRef)[NSURL fileURLWithPath:layerPath], (__bridge CFStringRef)UTTypePNG.identifier, 1, NULL);
         CGImageDestinationAddImage(imageDestination, r, (__bridge CFDictionaryRef)[NSDictionary dictionary]);
         CGImageDestinationFinalize(imageDestination);
         CFRelease(imageDestination);
@@ -72,14 +73,14 @@ void makeComposite(NSString *path) {
     
     CGImageRef image = CGBitmapContextCreateImage(cgcontext);
     
-    CGImageDestinationRef imageDestination = CGImageDestinationCreateWithURL((__bridge CFURLRef)[NSURL fileURLWithPath:outImagePath], kUTTypePNG, 1, NULL);
+    CGImageDestinationRef imageDestination = CGImageDestinationCreateWithURL((__bridge CFURLRef)[NSURL fileURLWithPath:outImagePath], (__bridge CFStringRef)UTTypePNG.identifier, 1, NULL);
     CGImageDestinationAddImage(imageDestination, image, (__bridge CFDictionaryRef)[NSDictionary dictionary]);
     CGImageDestinationFinalize(imageDestination);
     CFRelease(imageDestination);
     
     CGImageRelease(image);
     
-    [[NSWorkspace sharedWorkspace] openFile:outImagePath];
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:outImagePath]];
     
 }
 

@@ -142,8 +142,12 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     CGContextRef referenceContext = FMPSDCGBitmapContextCreate(bounds.size, psd.colorSpace);
     if (!actualContext || !referenceContext) {
         XCTFail(@"Could not create comparison contexts");
-        if (actualContext) CGContextRelease(actualContext);
-        if (referenceContext) CGContextRelease(referenceContext);
+        if (actualContext) {
+            CGContextRelease(actualContext);
+        }
+        if (referenceContext) {
+            CGContextRelease(referenceContext);
+        }
         CGImageRelease(reference);
         return;
     }
@@ -173,11 +177,76 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     CGImageRelease(reference);
 }
 
+// Compare decoded image pixels in a shared RGB color space. The caller retains ownership of image.
+- (void)assertImage:(CGImageRef)image matchesURL:(NSURL *)url tolerance:(int)tolerance {
+    if (!image || !url || tolerance < 0) {
+        XCTFail(@"Image and URL are required, and tolerance must be nonnegative");
+        return;
+    }
+    CGImageSourceRef source = CGImageSourceCreateWithURL((__bridge CFURLRef)url, NULL);
+    CGImageRef reference = source ? CGImageSourceCreateImageAtIndex(source, 0, NULL) : NULL;
+    if (source) {
+        CFRelease(source);
+    }
+    if (!reference) {
+        XCTFail(@"ImageIO could not decode reference %@", url.lastPathComponent);
+        return;
+    }
+    XCTAssertEqual(CGImageGetWidth(reference), CGImageGetWidth(image), @"file: %@", [url lastPathComponent]);
+    XCTAssertEqual(CGImageGetHeight(reference), CGImageGetHeight(image), @"file: %@", [url lastPathComponent]);
+    if (CGImageGetWidth(reference) != CGImageGetWidth(image) || CGImageGetHeight(reference) != CGImageGetHeight(image)) {
+        CGImageRelease(reference);
+        return;
+    }
+    // Normalize both images to the same 8-bit RGB format, including gray and CMYK inputs.
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
+    CGRect bounds = CGRectMake(0, 0, CGImageGetWidth(image), CGImageGetHeight(image));
+    CGContextRef actualContext = FMPSDCGBitmapContextCreate(bounds.size, colorSpace);
+    CGContextRef referenceContext = FMPSDCGBitmapContextCreate(bounds.size, colorSpace);
+    CGColorSpaceRelease(colorSpace);
+    if (!actualContext || !referenceContext) {
+        XCTFail(@"Could not create comparison contexts");
+        if (actualContext) {
+            CGContextRelease(actualContext);
+        }
+        if (referenceContext) {
+            CGContextRelease(referenceContext);
+        }
+        CGImageRelease(reference);
+        return;
+    }
+    CGContextDrawImage(actualContext, bounds, image);
+    CGContextDrawImage(referenceContext, bounds, reference);
+    BOOL matches = YES;
+    for (NSUInteger y = 0; y < CGImageGetHeight(image) && matches; y++) {
+        for (NSUInteger x = 0; x < CGImageGetWidth(image); x++) {
+            FMPSDPixel actual = FMPSDPixelForPointInContext(actualContext, CGPointMake(x, y));
+            FMPSDPixel expected = FMPSDPixelForPointInContext(referenceContext, CGPointMake(x, y));
+            if (actual.a == expected.a && actual.a <= tolerance) {
+                continue;
+            }
+            if (abs(actual.a - expected.a) > tolerance || abs(actual.r - expected.r) > tolerance ||
+                abs(actual.g - expected.g) > tolerance || abs(actual.b - expected.b) > tolerance) {
+                XCTFail(@"%@ differs at (%lu, %lu): RGBA (%u, %u, %u, %u), expected (%u, %u, %u, %u), tolerance %d",
+                        url.lastPathComponent, (unsigned long)x, (unsigned long)y,
+                        actual.r, actual.g, actual.b, actual.a, expected.r, expected.g, expected.b, expected.a, tolerance);
+                matches = NO;
+                break;
+            }
+        }
+    }
+    CGContextRelease(actualContext);
+    CGContextRelease(referenceContext);
+    CGImageRelease(reference);
+}
+
 // Ported from acorn8/tests/scripts/testPSDAcornIconUnlinked.js.
 - (void)testPSDAcornIconUnlinked {
     NSURL *imageURL = FMPSDTestImageNamed(@"AcornIcon-unlinked.psd");
     FMPSD *psd = [self readPSDAtURL:imageURL];
-    if (!psd) return;
+    if (!psd) {
+        return;
+    }
     XCTAssertEqual([psd channels], 4);
     XCTAssertEqual([psd depth], 8);
     XCTAssertEqual([psd colorMode], FMPSDRGBMode);
@@ -186,7 +255,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     XCTAssertEqual([psd version], 1);
     XCTAssertTrue([[psd baseLayerGroup] layers]);
     XCTAssertEqual([[[psd baseLayerGroup] layers] count], 1);
-    if ([[[psd baseLayerGroup] layers] count] != 1) return;
+    if ([[[psd baseLayerGroup] layers] count] != 1) {
+        return;
+    }
     FMPSDLayer *layer1 = [[[psd baseLayerGroup] layers] objectAtIndex:0];
     XCTAssertEqualObjects([layer1 layerName], @"Layer 0");
     XCTAssertEqual([layer1 channels], 5);
@@ -202,7 +273,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
 - (void)testPSDCirclescs4 {
     NSURL *imageURL = FMPSDTestImageNamed(@"circles-cs4.psd");
     FMPSD *psd = [self readPSDAtURL:imageURL];
-    if (!psd) return;
+    if (!psd) {
+        return;
+    }
     XCTAssertEqual([psd channels], 3);
     XCTAssertEqual([psd depth], 8);
     XCTAssertEqual([psd colorMode], FMPSDRGBMode);
@@ -211,7 +284,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     XCTAssertEqual([psd version], 1);
     XCTAssertTrue([[psd baseLayerGroup] layers]);
     XCTAssertEqual([[[psd baseLayerGroup] layers] count], 2);
-    if ([[[psd baseLayerGroup] layers] count] != 2) return;
+    if ([[[psd baseLayerGroup] layers] count] != 2) {
+        return;
+    }
     FMPSDLayer *layer1 = [[[psd baseLayerGroup] layers] objectAtIndex:1];
     XCTAssertEqualObjects([layer1 layerName], @"Layer 1");
     XCTAssertEqual([layer1 width], 400);
@@ -228,16 +303,22 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     [psd writeToFile:outURL];
     XCTAssertTrue([[NSFileManager defaultManager] fileExistsAtPath:outURL.path]);
     FMPSD *psd2 = [self readPSDAtURL:outURL];
-    if (!psd2) return;
+    if (!psd2) {
+        return;
+    }
     XCTAssertEqual([[[psd2 baseLayerGroup] layers] count], 2);
-    if ([[[psd2 baseLayerGroup] layers] count] != 2) return;
+    if ([[[psd2 baseLayerGroup] layers] count] != 2) {
+        return;
+    }
 }
 
 // Ported from acorn8/tests/scripts/testPSDFugueScriptTest.js.
 - (void)testPSDFugueScriptTest {
     NSURL *imageURL = FMPSDTestImageNamed(@"fugue-script-1.psd");
     FMPSD *psd = [self readPSDAtURL:imageURL];
-    if (!psd) return;
+    if (!psd) {
+        return;
+    }
     XCTAssertEqual([psd channels], 3);
     XCTAssertEqual([psd depth], 8);
     XCTAssertEqual([psd colorMode], FMPSDRGBMode);
@@ -246,7 +327,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     XCTAssertEqual([psd version], 1);
     XCTAssertTrue([[psd baseLayerGroup] layers]);
     XCTAssertEqual([[[psd baseLayerGroup] layers] count], 3);
-    if ([[[psd baseLayerGroup] layers] count] != 3) return;
+    if ([[[psd baseLayerGroup] layers] count] != 3) {
+        return;
+    }
     FMPSDLayer *layer1 = [[[psd baseLayerGroup] layers] objectAtIndex:0];
     FMPSDLayer *layer2 = [[[psd baseLayerGroup] layers] objectAtIndex:1];
     FMPSDLayer *layer3 = [[[psd baseLayerGroup] layers] objectAtIndex:2];
@@ -264,7 +347,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
 - (void)testPSDGreenblackTest {
     NSURL *imageURL = FMPSDTestImageNamed(@"greenblack.psd");
     FMPSD *psd = [self readPSDAtURL:imageURL];
-    if (!psd) return;
+    if (!psd) {
+        return;
+    }
     XCTAssertEqual([psd channels], 3);
     XCTAssertEqual([psd depth], 8);
     XCTAssertEqual([psd colorMode], FMPSDRGBMode);
@@ -273,7 +358,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     XCTAssertEqual([psd version], 1);
     XCTAssertTrue([[psd baseLayerGroup] layers]);
     XCTAssertEqual([[[psd baseLayerGroup] layers] count], 3);
-    if ([[[psd baseLayerGroup] layers] count] != 3) return;
+    if ([[[psd baseLayerGroup] layers] count] != 3) {
+        return;
+    }
     FMPSDLayer *layer1 = [[[psd baseLayerGroup] layers] objectAtIndex:2];
     FMPSDLayer *layer2 = [[[psd baseLayerGroup] layers] objectAtIndex:1];
     XCTAssertEqualObjects([layer1 layerName], @"Background");
@@ -290,10 +377,14 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     XCTAssertTrue([[NSFileManager defaultManager] fileExistsAtPath:outURL.path]);
     [self assertComposite:psd matchesURL:outURL tolerance:40];
     FMPSD *psd2 = [self readPSDAtURL:outURL];
-    if (!psd2) return;
+    if (!psd2) {
+        return;
+    }
     XCTAssertEqual([psd2 channels], 4);
     XCTAssertEqual([[[psd2 baseLayerGroup] layers] count], 3);
-    if ([[[psd2 baseLayerGroup] layers] count] != 3) return;
+    if ([[[psd2 baseLayerGroup] layers] count] != 3) {
+        return;
+    }
 }
 
 // Ported from acorn8/tests/scripts/testPSDGreenblackflatTest.js.
@@ -301,7 +392,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     NSURL *imageURL = FMPSDTestImageNamed(@"greenblackflat.psd");
     FMPSD *psd = [self readPSDAtURL:imageURL];
     
-    if (!psd) return;
+    if (!psd) {
+        return;
+    }
     XCTAssertEqual([psd channels], 3);
     XCTAssertEqual([psd depth], 8);
     XCTAssertEqual([psd colorMode], FMPSDRGBMode);
@@ -310,7 +403,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     XCTAssertEqual([psd version], 1);
     XCTAssertTrue([[psd baseLayerGroup] layers]);
     XCTAssertEqual([[[psd baseLayerGroup] layers] count], 1);
-    if ([[[psd baseLayerGroup] layers] count] != 1) return;
+    if ([[[psd baseLayerGroup] layers] count] != 1) {
+        return;
+    }
     FMPSDLayer *layer1 = [[[psd baseLayerGroup] layers] objectAtIndex:0];
     XCTAssertEqualObjects([layer1 layerName], @"Background");
     XCTAssertEqual([layer1 channels], 3);
@@ -326,7 +421,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
 - (void)testPSDOddWidthTest {
     NSURL *imageURL = FMPSDTestImageNamed(@"2layer-101width.psd");
     FMPSD *psd = [self readPSDAtURL:imageURL];
-    if (!psd) return;
+    if (!psd) {
+        return;
+    }
     XCTAssertEqual([psd channels], 3);
     XCTAssertEqual([psd depth], 8);
     XCTAssertEqual([psd colorMode], FMPSDRGBMode);
@@ -335,7 +432,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     XCTAssertEqual([psd version], 1);
     XCTAssertTrue([[psd baseLayerGroup] layers]);
     XCTAssertEqual([[[psd baseLayerGroup] layers] count], 2);
-    if ([[[psd baseLayerGroup] layers] count] != 2) return;
+    if ([[[psd baseLayerGroup] layers] count] != 2) {
+        return;
+    }
     FMPSDLayer *layer1 = [[[psd baseLayerGroup] layers] objectAtIndex:1];
     FMPSDLayer *layer2 = [[[psd baseLayerGroup] layers] objectAtIndex:0];
     XCTAssertEqual([layer1 channels], 4);
@@ -350,17 +449,23 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     XCTAssertTrue([[NSFileManager defaultManager] fileExistsAtPath:outURL.path]);
     [self assertComposite:psd matchesURL:outURL tolerance:40];
     FMPSD *psd2 = [self readPSDAtURL:outURL];
-    if (!psd2) return;
+    if (!psd2) {
+        return;
+    }
     XCTAssertEqual([psd2 channels], 4);
     XCTAssertEqual([[[psd2 baseLayerGroup] layers] count], 2);
-    if ([[[psd2 baseLayerGroup] layers] count] != 2) return;
+    if ([[[psd2 baseLayerGroup] layers] count] != 2) {
+        return;
+    }
 }
 
 // Ported from acorn8/tests/scripts/testPSDOddWidthTest2.js.
 - (void)testPSDOddWidthTest2 {
     NSURL *imageURL = FMPSDTestImageNamed(@"2layer-101width2.psd");
     FMPSD *psd = [self readPSDAtURL:imageURL];
-    if (!psd) return;
+    if (!psd) {
+        return;
+    }
     XCTAssertEqual([psd channels], 4);
     XCTAssertEqual([psd depth], 8);
     XCTAssertEqual([psd colorMode], FMPSDRGBMode);
@@ -369,7 +474,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     XCTAssertEqual([psd version], 1);
     XCTAssertTrue([[psd baseLayerGroup] layers]);
     XCTAssertEqual([[[psd baseLayerGroup] layers] count], 2);
-    if ([[[psd baseLayerGroup] layers] count] != 2) return;
+    if ([[[psd baseLayerGroup] layers] count] != 2) {
+        return;
+    }
     FMPSDLayer *layer1 = [[[psd baseLayerGroup] layers] objectAtIndex:1];
     FMPSDLayer *layer2 = [[[psd baseLayerGroup] layers] objectAtIndex:0];
     XCTAssertEqual([layer1 channels], 4);
@@ -383,10 +490,14 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     [psd writeToFile:outURL];
     XCTAssertTrue([[NSFileManager defaultManager] fileExistsAtPath:outURL.path]);
     FMPSD *psd2 = [self readPSDAtURL:outURL];
-    if (!psd2) return;
+    if (!psd2) {
+        return;
+    }
     XCTAssertEqual([psd2 channels], 4);
     XCTAssertEqual([[[psd2 baseLayerGroup] layers] count], 2);
-    if ([[[psd2 baseLayerGroup] layers] count] != 2) return;
+    if ([[[psd2 baseLayerGroup] layers] count] != 2) {
+        return;
+    }
     [self assertComposite:psd matchesURL:outURL tolerance:37];
 }
 
@@ -394,7 +505,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
 - (void)testPSDOffsetsTest {
     NSURL *imageURL = FMPSDTestImageNamed(@"offsets.psd");
     FMPSD *psd = [self readPSDAtURL:imageURL];
-    if (!psd) return;
+    if (!psd) {
+        return;
+    }
     XCTAssertEqual([psd channels], 4);
     XCTAssertEqual([psd depth], 8);
     XCTAssertEqual([psd colorMode], FMPSDRGBMode);
@@ -403,7 +516,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     XCTAssertEqual([psd version], 1);
     XCTAssertTrue([[psd baseLayerGroup] layers]);
     XCTAssertEqual([[[psd baseLayerGroup] layers] count], 3);
-    if ([[[psd baseLayerGroup] layers] count] != 3) return;
+    if ([[[psd baseLayerGroup] layers] count] != 3) {
+        return;
+    }
     XCTAssertNotNil([psd compositeCIImage]);
 }
 
@@ -411,7 +526,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
 - (void)testPSDRed100x100Test {
     NSURL *imageURL = FMPSDTestImageNamed(@"red-100x100.psd");
     FMPSD *psd = [self readPSDAtURL:imageURL];
-    if (!psd) return;
+    if (!psd) {
+        return;
+    }
     XCTAssertEqual([psd channels], 4);
     XCTAssertEqual([psd depth], 8);
     XCTAssertEqual([psd colorMode], FMPSDRGBMode);
@@ -420,7 +537,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     XCTAssertEqual([psd version], 1);
     XCTAssertTrue([[psd baseLayerGroup] layers]);
     XCTAssertEqual([[[psd baseLayerGroup] layers] count], 1);
-    if ([[[psd baseLayerGroup] layers] count] != 1) return;
+    if ([[[psd baseLayerGroup] layers] count] != 1) {
+        return;
+    }
     FMPSDLayer *layer = [[[psd baseLayerGroup] layers] objectAtIndex:0];
     XCTAssertEqualObjects([layer layerName], @"Layer 1");
     XCTAssertNotNil([psd compositeCIImage]);
@@ -434,7 +553,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
 - (void)testPSDResolutionCM {
     NSURL *imageURL = FMPSDTestImageNamed(@"513dpiFromCM.psd");
     FMPSD *psd = [self readPSDAtURL:imageURL];
-    if (!psd) return;
+    if (!psd) {
+        return;
+    }
     XCTAssertEqual(floorf([psd dpi]), 513);
 }
 
@@ -442,7 +563,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
 - (void)testPSDResolutionDPI {
     NSURL *imageURL = FMPSDTestImageNamed(@"512dpi.psd");
     FMPSD *psd = [self readPSDAtURL:imageURL];
-    if (!psd) return;
+    if (!psd) {
+        return;
+    }
     XCTAssertEqual(floorf([psd dpi]), 512);
 }
 
@@ -450,7 +573,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
 - (void)testPSDSimplegroupTest {
     NSURL *imageURL = FMPSDTestImageNamed(@"simplegroup.psd");
     FMPSD *psd = [self readPSDAtURL:imageURL];
-    if (!psd) return;
+    if (!psd) {
+        return;
+    }
     XCTAssertEqual([psd channels], 4);
     XCTAssertEqual([psd depth], 8);
     XCTAssertEqual([psd colorMode], FMPSDRGBMode);
@@ -459,18 +584,26 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     XCTAssertEqual([psd version], 1);
     XCTAssertTrue([[psd baseLayerGroup] layers]);
     XCTAssertEqual([[[psd baseLayerGroup] layers] count], 5);
-    if ([[[psd baseLayerGroup] layers] count] != 5) return;
+    if ([[[psd baseLayerGroup] layers] count] != 5) {
+        return;
+    }
     FMPSDLayer *topLayer = [[[psd baseLayerGroup] layers] objectAtIndex:0];
     XCTAssertEqualObjects([topLayer layerName], @"Layer 2");
     XCTAssertTrue([topLayer transparencyProtected]);
     XCTAssertEqualObjects([[[[psd baseLayerGroup] layers] objectAtIndex:1] layerName], @"Third Group With One Layer!");
     XCTAssertTrue([[[[psd baseLayerGroup] layers] objectAtIndex:1] isGroup]);
     XCTAssertEqual([[[[[psd baseLayerGroup] layers] objectAtIndex:1] layers] count], 1);
-    if ([[[[[psd baseLayerGroup] layers] objectAtIndex:1] layers] count] != 1) return;
+    if ([[[[[psd baseLayerGroup] layers] objectAtIndex:1] layers] count] != 1) {
+        return;
+    }
     XCTAssertEqual([[[[[psd baseLayerGroup] layers] objectAtIndex:3] layers] count], 3);
-    if ([[[[[psd baseLayerGroup] layers] objectAtIndex:3] layers] count] != 3) return;
+    if ([[[[[psd baseLayerGroup] layers] objectAtIndex:3] layers] count] != 3) {
+        return;
+    }
     XCTAssertEqual([[[[[[[psd baseLayerGroup] layers] objectAtIndex:3] layers] objectAtIndex:1] layers] count], 1);
-    if ([[[[[[[psd baseLayerGroup] layers] objectAtIndex:3] layers] objectAtIndex:1] layers] count] != 1) return;
+    if ([[[[[[[psd baseLayerGroup] layers] objectAtIndex:3] layers] objectAtIndex:1] layers] count] != 1) {
+        return;
+    }
     [self assertComposite:psd matchesURL:imageURL tolerance:0];
 }
 
@@ -478,7 +611,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
 - (void)testPSDSingleSolidGreenTest {
     NSURL *imageURL = FMPSDTestImageNamed(@"singleSolidGreen.psd");
     FMPSD *psd = [self readPSDAtURL:imageURL];
-    if (!psd) return;
+    if (!psd) {
+        return;
+    }
     XCTAssertEqual([psd channels], 3);
     XCTAssertEqual([psd depth], 8);
     XCTAssertEqual([psd colorMode], FMPSDRGBMode);
@@ -487,7 +622,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     XCTAssertEqual([psd version], 1);
     XCTAssertTrue([[psd baseLayerGroup] layers]);
     XCTAssertEqual([[[psd baseLayerGroup] layers] count], 1);
-    if ([[[psd baseLayerGroup] layers] count] != 1) return;
+    if ([[[psd baseLayerGroup] layers] count] != 1) {
+        return;
+    }
     XCTAssertNotNil([psd compositeCIImage]);
     [self assertComposite:psd matchesURL:imageURL tolerance:0];
 }
@@ -496,7 +633,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
 - (void)testPSDSingleSolidTransparentGreenTest {
     NSURL *imageURL = FMPSDTestImageNamed(@"singleSolidTransparentGreen.psd");
     FMPSD *psd = [self readPSDAtURL:imageURL];
-    if (!psd) return;
+    if (!psd) {
+        return;
+    }
     XCTAssertEqual([psd channels], 4);
     XCTAssertEqual([psd depth], 8);
     XCTAssertEqual([psd colorMode], FMPSDRGBMode);
@@ -505,7 +644,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     XCTAssertEqual([psd version], 1);
     XCTAssertTrue([[psd baseLayerGroup] layers]);
     XCTAssertEqual([[[psd baseLayerGroup] layers] count], 1);
-    if ([[[psd baseLayerGroup] layers] count] != 1) return;
+    if ([[[psd baseLayerGroup] layers] count] != 1) {
+        return;
+    }
     XCTAssertNotNil([psd compositeCIImage]);
 }
 
@@ -513,7 +654,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
 - (void)testPSDTextText {
     NSURL *imageURL = FMPSDTestImageNamed(@"text.psd");
     FMPSD *psd = [self readPSDAtURL:imageURL];
-    if (!psd) return;
+    if (!psd) {
+        return;
+    }
     XCTAssertEqual([psd channels], 4);
     XCTAssertEqual([psd depth], 8);
     XCTAssertEqual([psd colorMode], FMPSDRGBMode);
@@ -522,7 +665,9 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     XCTAssertEqual([psd version], 1);
     XCTAssertTrue([[psd baseLayerGroup] layers]);
     XCTAssertEqual([[[psd baseLayerGroup] layers] count], 1);
-    if ([[[psd baseLayerGroup] layers] count] != 1) return;
+    if ([[[psd baseLayerGroup] layers] count] != 1) {
+        return;
+    }
     FMPSDLayer *layer = [[[psd baseLayerGroup] layers] objectAtIndex:0];
     XCTAssertEqualObjects([layer layerName], @"moar Acorn");
     FMPSDTextEngineParser *p = [layer.textDescriptor.attributes objectForKey:@"EngineData"];
@@ -540,6 +685,42 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
 // Ported from acorn8/tests/scripts/testPSDTrimLayerExport.js.
 - (void)testPSDTrimLayerExport {
     XCTSkip(@"Requires Acorn to export testPSDTrimLayerExport.acorn; no exported PSD fixture is available.");
+}
+
+
+
+
+- (void)testGray8Bit {
+    NSURL *imageURL = FMPSDTestImageNamed(@"gray-8bit.psd");
+    FMPSD *psd = [self readPSDAtURL:imageURL];
+    if (!psd) {
+        return;
+    }
+    
+    XCTAssertEqual([psd channels], 2);
+    XCTAssertEqual([psd depth], 8);
+    XCTAssertEqual([psd colorMode], FMPSDGrayscaleMode);
+    XCTAssertEqual([psd width], 100);
+    XCTAssertEqual([psd height], 100);
+    XCTAssertEqual([psd version], 1);
+    XCTAssertTrue([[psd baseLayerGroup] layers]);
+    XCTAssertEqual([[[psd baseLayerGroup] layers] count], 2);
+    
+    if ([[[psd baseLayerGroup] layers] count] != 2) {
+        return;
+    }
+    
+    FMPSDLayer *layer = [[[psd baseLayerGroup] layers] objectAtIndex:0];
+    XCTAssertEqualObjects([layer layerName], @"Layer Above Background");
+    FMPSDLayer *background = [[[psd baseLayerGroup] layers] objectAtIndex:1];
+    XCTAssertEqualObjects(background.layerName, @"This is the background");
+    XCTAssertNotNil((__bridge id)layer.image);
+    XCTAssertNotNil((__bridge id)background.image);
+    XCTAssertNotNil((__bridge id)psd.compositeLayer.image);
+    
+    [self assertImage:[layer image] matchesURL:FMPSDTestImageNamed(@"gray-8bitLayer1.png") tolerance:2];
+    [self assertImage:[background image] matchesURL:FMPSDTestImageNamed(@"gray-8bitLayer0.png") tolerance:2];
+    
 }
 
 /*

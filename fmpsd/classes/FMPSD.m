@@ -105,6 +105,11 @@ BOOL FMPSDPrintDebugInfo = NO;
         _sourceCMYKColorSpace = nil;
     }
 
+    if (_sourceGrayscaleColorSpace) {
+        CGColorSpaceRelease(_sourceGrayscaleColorSpace);
+        _sourceGrayscaleColorSpace = nil;
+    }
+
 }
 
 - (NSData*)resoultionData {
@@ -221,6 +226,10 @@ BOOL FMPSDPrintDebugInfo = NO;
         _sourceCMYKColorSpace = _colorSpace;
         _colorSpace = nil;
     }
+    else if (_colorSpace && CGColorSpaceGetModel(_colorSpace) == kCGColorSpaceModelMonochrome) {
+        _sourceGrayscaleColorSpace = _colorSpace;
+        _colorSpace = nil;
+    }
 
     CGImageRelease(imageRef);
 }
@@ -242,6 +251,25 @@ BOOL FMPSDPrintDebugInfo = NO;
     }
 
     return _sourceCMYKColorSpace;
+}
+
+- (CGColorSpaceRef)sourceGrayscaleColorSpace {
+
+    if (!_sourceGrayscaleColorSpace && _iccProfile) {
+        CGColorSpaceRef cs = CGColorSpaceCreateWithICCData((__bridge CFDataRef)_iccProfile);
+        if (cs && CGColorSpaceGetModel(cs) == kCGColorSpaceModelMonochrome) {
+            _sourceGrayscaleColorSpace = cs;
+        }
+        else if (cs) {
+            CGColorSpaceRelease(cs);
+        }
+    }
+
+    if (!_sourceGrayscaleColorSpace) {
+        _sourceGrayscaleColorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericGray);
+    }
+
+    return _sourceGrayscaleColorSpace;
 }
 
 - (BOOL)readLayersFromStream:(FMPSDStream *)stream error:(NSError *__autoreleasing *)err {
@@ -384,7 +412,8 @@ BOOL FMPSDPrintDebugInfo = NO;
     _depth      = [stream readInt16];
     _colorMode  = [stream readInt16];
     
-    if (_channels < 3 || _channels > 10 || !_width || !_height || _width > 30000 || _height > 30000) {
+    uint16_t minimumChannels = _colorMode == FMPSDGrayscaleMode ? 1 : 3;
+    if (_channels < minimumChannels || _channels > 10 || !_width || !_height || _width > 30000 || _height > 30000) {
         if (err) {
             *err = [NSError errorWithDomain:@"8BPS" code:1 userInfo:@{NSLocalizedDescriptionKey: @"Unsupported PSD dimensions or channel count."}];
         }
@@ -397,7 +426,8 @@ BOOL FMPSDPrintDebugInfo = NO;
     FMPSDDebug(@"_depth:     %d", _depth);
     FMPSDDebug(@"_colorMode: %d", _colorMode);
     
-    BOOL supportedMode = (_colorMode == FMPSDRGBMode && (_depth == 8 || _depth == 16)) || (_colorMode == FMPSDCMYKMode && _depth == 8);
+    BOOL supportedMode = (_colorMode == FMPSDRGBMode && (_depth == 8 || _depth == 16)) ||
+                         ((_colorMode == FMPSDCMYKMode || _colorMode == FMPSDGrayscaleMode) && _depth == 8);
 
     if (!supportedMode) {
         NSLog(@"Unsupported color mode (%d)", _colorMode);

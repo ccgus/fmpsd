@@ -22,6 +22,7 @@
 		CC2F3EB63071805000E74499 /* FMPSDStream.m in Sources */ = {isa = PBXBuildFile; fileRef = CC4381B0177251AF009D82C3 /* FMPSDStream.m */; };
 		CC2F3EB73071805000E74499 /* FMPSDTextEngineParser.m in Sources */ = {isa = PBXBuildFile; fileRef = AEB344A717BE3ECB00335650 /* FMPSDTextEngineParser.m */; };
 		CC2F3EBA3071BD0F00E74499 /* tests.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = CC2F3EB93071BD0F00E74499 /* tests.xctestplan */; };
+		CC2F3EBC3072010000E74499 /* UniformTypeIdentifiers.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CC2F3EBB3072010000E74499 /* UniformTypeIdentifiers.framework */; };
 		CC4381B3177251AF009D82C3 /* FMPSD.m in Sources */ = {isa = PBXBuildFile; fileRef = CC4381A8177251AF009D82C3 /* FMPSD.m */; };
 		CC4381B5177251AF009D82C3 /* FMPSDDescriptor.m in Sources */ = {isa = PBXBuildFile; fileRef = CC4381AC177251AF009D82C3 /* FMPSDDescriptor.m */; };
 		CC4381B6177251AF009D82C3 /* FMPSDLayer.m in Sources */ = {isa = PBXBuildFile; fileRef = CC4381AE177251AF009D82C3 /* FMPSDLayer.m */; };
@@ -58,6 +59,7 @@
 		CC2F3E9F3071755C00E74499 /* tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CC2F3EAD30717E6100E74499 /* FMPSDTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = FMPSDTests.m; path = tests/FMPSDTests.m; sourceTree = SOURCE_ROOT; };
 		CC2F3EB93071BD0F00E74499 /* tests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; name = tests.xctestplan; path = tests/tests.xctestplan; sourceTree = "<group>"; };
+		CC2F3EBB3072010000E74499 /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
 		CC4381A7177251AF009D82C3 /* FMPSD.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FMPSD.h; path = classes/FMPSD.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		CC4381A8177251AF009D82C3 /* FMPSD.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = FMPSD.m; path = classes/FMPSD.m; sourceTree = "<group>"; };
 		CC4381AB177251AF009D82C3 /* FMPSDDescriptor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FMPSDDescriptor.h; path = classes/FMPSDDescriptor.h; sourceTree = "<group>"; };
@@ -92,6 +94,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CC2F3EBC3072010000E74499 /* UniformTypeIdentifiers.framework in Frameworks */,
 				467BE765182B258D008D7645 /* Accelerate.framework in Frameworks */,
 				CC4381BA17725E6D009D82C3 /* Cocoa.framework in Frameworks */,
 				CCF682FB17724EB800478D7A /* Foundation.framework in Frameworks */,
@@ -143,6 +146,7 @@
 		CCF682F917724EB800478D7A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				CC2F3EBB3072010000E74499 /* UniformTypeIdentifiers.framework */,
 				467BE764182B258D008D7645 /* Accelerate.framework */,
 				CC4381BB17725E78009D82C3 /* QuartzCore.framework */,
 				CC4381B917725E6C009D82C3 /* Cocoa.framework */,

@@ -1335,6 +1335,7 @@ invalidData:
 
     // In CMYK mode, the r/g/b planes hold cyan/magenta/yellow, plus a black plane (channel id 3).
     BOOL isCMYK = [_psd colorMode] == FMPSDCMYKMode;
+    BOOL isGrayscale = [_psd colorMode] == FMPSDGrayscaleMode;
 
     char* r = nil, *g = nil, *b = nil, *k = nil, *a = nil, *m = nil;
 
@@ -1437,7 +1438,8 @@ invalidData:
             NSData *maskData = [NSData dataWithBytes:m length:(size_t)_maskWidth * _maskHeight * 2];
             CGDataProviderRef provider = CGDataProviderCreateWithCFData((__bridge CFDataRef)maskData);
             CGColorSpaceRef gray = CGColorSpaceCreateWithName(kCGColorSpaceGenericGray);
-            _mask = CGImageCreate(_maskWidth, _maskHeight, 16, 16, _maskWidth * 2, gray, kCGImageAlphaNone | kCGBitmapByteOrder16Big, provider, nil, NO, kCGRenderingIntentDefault);
+            
+            _mask = CGImageCreate(_maskWidth, _maskHeight, 16, 16, _maskWidth * 2, gray, (CGBitmapInfo)kCGImageAlphaNone | kCGBitmapByteOrder16Big, provider, nil, NO, kCGRenderingIntentDefault);
             CGColorSpaceRelease(gray);
             CGDataProviderRelease(provider);
             if (!_mask) {
@@ -1448,7 +1450,7 @@ invalidData:
             return YES;
         }
         
-        CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 16, (size_t)_width * 8, [_psd colorSpace], kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder16Host);
+        CGContextRef ctx = CGBitmapContextCreate(nil, _width, _height, 16, (size_t)_width * 8, [_psd colorSpace], (CGBitmapInfo)kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder16Host);
         if (!ctx) {
             return NO;
         }
@@ -1535,39 +1537,56 @@ invalidData:
 
         int32_t width = _width;
 
-        if (isCMYK) {
+        if (isCMYK || isGrayscale) {
 
-            // The channel data is stored inverted (0 = 100% ink), which we flip back around
-            // while interleaving the planes. Then we hand the result off to CG with the
-            // document's CMYK profile so we get a color managed conversion to RGB.
-            NSMutableData *cmykData = [NSMutableData dataWithLength:n * 4];
-            uint8_t *cmyk = [cmykData mutableBytes];
-
-            dispatch_apply(_height, queue, ^(size_t row) {
-
-                size_t planeStart = (row * width);
-                int32_t x = 0;
-                while (x < width) {
-
-                    size_t planeLoc = planeStart + x;
-                    uint8_t *d = &cmyk[planeLoc * 4];
-
-                    d[0] = 255 - (uint8_t)r[planeLoc];
-                    d[1] = 255 - (uint8_t)g[planeLoc];
-                    d[2] = 255 - (uint8_t)b[planeLoc];
-                    d[3] = 255 - (uint8_t)k[planeLoc];
-
-                    x++;
+            if (isGrayscale) {
+                // Channel 0 is gray. Convert through its profile into the RGB context;
+                // the shared alpha pass below handles layer transparency.
+                NSData *grayData = [NSData dataWithBytes:r length:n];
+                CGDataProviderRef provider = CGDataProviderCreateWithCFData((__bridge CFDataRef)grayData);
+                CGImageRef grayImage = CGImageCreate(_width, _height, 8, 8, _width, [_psd sourceGrayscaleColorSpace], (CGBitmapInfo)kCGImageAlphaNone, provider, nil, NO, kCGRenderingIntentDefault);
+                CGDataProviderRelease(provider);
+                if (!grayImage) {
+                    CGContextRelease(ctx);
+                    return NO;
                 }
-            });
+                CGContextSetBlendMode(ctx, kCGBlendModeCopy);
+                CGContextDrawImage(ctx, CGRectMake(0, 0, _width, _height), grayImage);
+                CGImageRelease(grayImage);
+            }
+            else {
+                // The channel data is stored inverted (0 = 100% ink), which we flip back around
+                // while interleaving the planes. Then we hand the result off to CG with the
+                // document's CMYK profile so we get a color managed conversion to RGB.
+                NSMutableData *cmykData = [NSMutableData dataWithLength:n * 4];
+                uint8_t *cmyk = [cmykData mutableBytes];
 
-            CGDataProviderRef provider = CGDataProviderCreateWithCFData((__bridge CFDataRef)cmykData);
-            CGImageRef cmykImage = CGImageCreate(_width, _height, 8, 32, _width * 4, [_psd sourceCMYKColorSpace], (CGBitmapInfo)kCGImageAlphaNone, provider, nil, NO, kCGRenderingIntentDefault);
-            CGDataProviderRelease(provider);
+                dispatch_apply(_height, queue, ^(size_t row) {
 
-            CGContextSetBlendMode(ctx, kCGBlendModeCopy);
-            CGContextDrawImage(ctx, CGRectMake(0, 0, _width, _height), cmykImage);
-            CGImageRelease(cmykImage);
+                    size_t planeStart = (row * width);
+                    int32_t x = 0;
+                    while (x < width) {
+
+                        size_t planeLoc = planeStart + x;
+                        uint8_t *d = &cmyk[planeLoc * 4];
+
+                        d[0] = 255 - (uint8_t)r[planeLoc];
+                        d[1] = 255 - (uint8_t)g[planeLoc];
+                        d[2] = 255 - (uint8_t)b[planeLoc];
+                        d[3] = 255 - (uint8_t)k[planeLoc];
+
+                        x++;
+                    }
+                });
+
+                CGDataProviderRef provider = CGDataProviderCreateWithCFData((__bridge CFDataRef)cmykData);
+                CGImageRef cmykImage = CGImageCreate(_width, _height, 8, 32, _width * 4, [_psd sourceCMYKColorSpace], (CGBitmapInfo)kCGImageAlphaNone, provider, nil, NO, kCGRenderingIntentDefault);
+                CGDataProviderRelease(provider);
+
+                CGContextSetBlendMode(ctx, kCGBlendModeCopy);
+                CGContextDrawImage(ctx, CGRectMake(0, 0, _width, _height), cmykImage);
+                CGImageRelease(cmykImage);
+            }
 
             // The context is opaque RGB now, so bring in the alpha plane (premultiplying as we go).
             dispatch_apply(_height, queue, ^(size_t row) {
@@ -1839,7 +1858,16 @@ invalidData:
 
 - (void)setupChannelIdsForCompositeRead {
 
-    if ([_psd colorMode] == FMPSDCMYKMode) {
+    if ([_psd colorMode] == FMPSDGrayscaleMode) {
+        _channelIds[0] = 0; // gray
+        if (_channels > 1) {
+            _channelIds[1] = -1; // alpha
+        }
+        for (int i = 2; i < _channels; i++) {
+            _channelIds[i] = -3; // ignore additional spot channels
+        }
+    }
+    else if ([_psd colorMode] == FMPSDCMYKMode) {
         _channelIds[0] = 0; // cyan
         _channelIds[1] = 1; // magenta
         _channelIds[2] = 2; // yellow

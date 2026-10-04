@@ -78,6 +78,7 @@ extern BOOL FMPSDPrintDebugInfo;
     
     CGColorSpaceRef _colorSpace;
     CGColorSpaceRef _sourceCMYKColorSpace;
+    CGColorSpaceRef _sourceGrayscaleColorSpace;
 }
 
 
@@ -106,6 +107,8 @@ extern BOOL FMPSDPrintDebugInfo;
 
 // The color space the channel data was in on disk, when reading a CMYK mode file. Layer images are converted to RGB.
 - (CGColorSpaceRef)sourceCMYKColorSpace;
+// Grayscale source profile, used when converting 8-bit gray channel data to RGB.
+- (CGColorSpaceRef)sourceGrayscaleColorSpace;
 
 @property CGColorSpaceRef colorSpace;
 

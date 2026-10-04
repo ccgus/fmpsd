@@ -10,6 +10,7 @@
 #import "FMPSDUtils.h"
 #import <QuartzCore/QuartzCore.h>
 #import <ImageIO/ImageIO.h>
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
 #if TARGET_OS_IPHONE
 #import <MobileCoreServices/MobileCoreServices.h>
@@ -52,7 +53,7 @@
 #ifdef __UNIFORMTYPEIDENTIFIERS_UTCORETYPES__
     CGImageDestinationRef imageDestination = CGImageDestinationCreateWithURL((__bridge CFURLRef)u, (__bridge CFStringRef)UTTypeTIFF.identifier, 1, NULL);
 #else
-    CGImageDestinationRef imageDestination = CGImageDestinationCreateWithURL((__bridge CFURLRef)u, kUTTypeTIFF, 1, NULL);
+    CGImageDestinationRef imageDestination = CGImageDestinationCreateWithURL((__bridge CFURLRef)u, UTTypeTIFF, 1, NULL);
 #endif
     
     FMAssert(imageDestination);
