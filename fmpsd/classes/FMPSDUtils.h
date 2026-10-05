@@ -76,4 +76,4 @@ void FMPSDDecodeRLE(char *src, int sindex, int slen, char *dst, int dindex);
 
 NSString * FMPSDStringForHFSTypeCode(OSType hfsFileTypeCode);
 
-
+uint32_t FMPSDBlendModeFromDescriptorString(NSString *string);

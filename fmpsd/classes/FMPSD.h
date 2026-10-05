@@ -12,6 +12,7 @@
 #import <CoreImage/CoreImage.h>
 #import <Accelerate/Accelerate.h>
 #import "FMPSDLayer.h"
+#import "FMPSDUtils.h"
 
 #ifdef DEBUG
 #ifndef debug
