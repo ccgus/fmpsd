@@ -16,6 +16,36 @@
 #import <zlib.h>
 
 
+// Layer blend mode codes to Photoshop effect descriptor enum values.
+static NSString *FMPSDDescriptorStringForBlendMode(uint32_t blendMode) {
+    switch (blendMode) {
+        case 'norm': return @"Nrml";
+        case 'diss': return @"Dslv";
+        case 'dark': return @"Drkn";
+        case 'mul ': return @"Mltp";
+        case 'idiv': return @"CBrn";
+        case 'lbrn': return @"linearBurn";
+        case 'lite': return @"Lghn";
+        case 'scrn': return @"Scrn";
+        case 'div ': return @"CDdg";
+        case 'lddg': return @"linearDodge";
+        case 'over': return @"Ovrl";
+        case 'sLit': return @"SftL";
+        case 'hLit': return @"HrdL";
+        case 'vLit': return @"VvdL";
+        case 'lLit': return @"LnrL";
+        case 'pLit': return @"PnLt";
+        case 'hMix': return @"HrdM";
+        case 'diff': return @"Dfrn";
+        case 'smud': return @"Xclu";
+        case 'hue ': return @"H   ";
+        case 'sat ': return @"Strt";
+        case 'colr': return @"Clr ";
+        case 'lum ': return @"Lmns";
+        default: return @"Nrml";
+    }
+}
+
 @interface FMPSDLayer()
 @property (strong) NSMutableArray *packedDatas;
 @property (strong) NSMutableArray *readPlaneDatas;
@@ -1970,6 +2000,10 @@ invalidData:
 }
 
 - (void)setColorOverlayEnabled:(BOOL)enabled color:(CGColorRef)color opacity:(double)opacity {
+    [self setColorOverlayEnabled:enabled color:color opacity:opacity blendMode:'norm'];
+}
+
+- (void)setColorOverlayEnabled:(BOOL)enabled color:(CGColorRef)color opacity:(double)opacity blendMode:(uint32_t)blendMode {
 
     if (!_layerEffects) {
         _layerEffects = [[FMPSDDescriptor alloc] init];
@@ -1980,7 +2014,7 @@ invalidData:
     [overlay setAttributes:[NSMutableDictionary dictionary]];
 
     [[overlay attributes] setObject:@(enabled) forKey:@"enab"];
-    [[overlay attributes] setObject:@"Nrml" forKey:@"Md  "]; // Normal blend mode
+    [[overlay attributes] setObject:FMPSDDescriptorStringForBlendMode(blendMode) forKey:@"Md  "];
     [[overlay attributes] setObject:@(opacity) forKey:@"Opct"];
 
     if (color) {

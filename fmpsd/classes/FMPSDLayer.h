@@ -81,6 +81,8 @@
 - (BOOL)hasColorOverlay;
 - (FMPSDDescriptor *)colorOverlay;
 - (void)setColorOverlayEnabled:(BOOL)enabled color:(CGColorRef)color opacity:(double)opacity;
+// blendMode uses the same four-character codes as the layer's blendMode property.
+- (void)setColorOverlayEnabled:(BOOL)enabled color:(CGColorRef)color opacity:(double)opacity blendMode:(uint32_t)blendMode;
 
 + (instancetype)layerWithStream:(FMPSDStream*)stream psd:(FMPSD*)psd error:(NSError *__autoreleasing *)err;
 + (instancetype)layerWithSize:(CGSize)s psd:(FMPSD*)psd;

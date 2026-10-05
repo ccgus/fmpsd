@@ -58,8 +58,24 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
     [super tearDown];
 }
 
+- (void)testColorOverlayBlendModeSetter {
+    FMPSDLayer *layer = [FMPSDLayer layerWithSize:CGSizeMake(1, 1) psd:nil];
+    uint32_t blendModes[] = {'norm', 'diss', 'dark', 'mul ', 'idiv', 'lbrn', 'lite', 'scrn', 'div ', 'lddg', 'over', 'sLit', 'hLit', 'vLit', 'lLit', 'pLit', 'hMix', 'diff', 'smud', 'hue ', 'sat ', 'colr', 'lum '};
+    for (NSUInteger i = 0; i < sizeof(blendModes) / sizeof(blendModes[0]); i++) {
+        [layer setColorOverlayEnabled:YES color:NULL opacity:75 blendMode:blendModes[i]];
+        XCTAssertEqual(layer.colorOverlay.colorOverlayBlendMode, blendModes[i]);
+        XCTAssertTrue(layer.hasColorOverlay);
+        XCTAssertEqualWithAccuracy(layer.colorOverlay.colorOverlayOpacity, 75, 0.001);
+    }
+    [layer setColorOverlayEnabled:YES color:NULL opacity:75 blendMode:'scrn'];
+    XCTAssertEqualObjects([layer.colorOverlay.attributes objectForKey:@"Md  "], @"Scrn");
+    [layer setColorOverlayEnabled:NO color:NULL opacity:25];
+    XCTAssertEqual(layer.colorOverlay.colorOverlayBlendMode, 'norm');
+    XCTAssertFalse(layer.hasColorOverlay);
+}
+
 - (void)testColorOverlayRoundTrip {
-    for (NSUInteger variant = 0; variant < 4; variant++) {
+    for (NSUInteger variant = 0; variant < 5; variant++) {
         FMPSDLayer *layer = [FMPSDLayer layerWithSize:CGSizeMake(1, 1) psd:nil];
         layer.layerName = @"Effects";
         XCTAssertFalse(layer.hasColorOverlay);
@@ -69,10 +85,16 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
         BOOL enabled = variant != 1;
         [layer setColorOverlayEnabled:enabled color:variant == 3 ? NULL : color opacity:37.5];
         if (variant == 1) {
-            [layer.colorOverlay.attributes setObject:@"linearBurn" forKey:@"Md  "];
+            [layer setColorOverlayEnabled:enabled color:color opacity:37.5 blendMode:'lbrn'];
+        }
+        if (variant == 4) {
+            [layer.colorOverlay.attributes setObject:@"screen" forKey:@"Md  "];
         }
         if (variant > 0) {
             [layer setDropShadowEnabled:YES color:color opacity:60 angle:120 distance:8 size:4];
+        }
+        if (variant == 4) {
+            [layer.dropShadow.attributes setObject:@"screen" forKey:@"Md  "];
         }
         CGColorRelease(color);
         
@@ -86,8 +108,11 @@ NSURL *FMPSDTestImageNamed(NSString *relativePathName) {
         XCTAssertEqual(readLayer.hasColorOverlay, enabled);
         XCTAssertEqual(readLayer.colorOverlay.colorOverlayEnabled, enabled);
         XCTAssertEqualWithAccuracy(readLayer.colorOverlay.colorOverlayOpacity, 37.5, 0.001);
-        XCTAssertEqual(readLayer.colorOverlay.colorOverlayBlendMode, variant == 1 ? 'lbrn' : 'norm');
+        XCTAssertEqual(readLayer.colorOverlay.colorOverlayBlendMode, variant == 1 ? 'lbrn' : (variant == 4 ? 'scrn' : 'norm'));
         XCTAssertEqual(readLayer.hasDropShadow, variant > 0);
+        if (variant == 4) {
+            XCTAssertEqual(readLayer.dropShadow.dropShadowBlendMode, 'scrn');
+        }
         if (variant > 0) {
             XCTAssertEqualWithAccuracy(readLayer.dropShadow.dropShadowDistance, 8, 0.001);
             XCTAssertEqualWithAccuracy(readLayer.dropShadow.dropShadowOpacity, 60, 0.001);

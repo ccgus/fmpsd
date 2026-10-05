@@ -15,29 +15,29 @@ static uint32_t FMPSDBlendModeFromDescriptorString(NSString *string) {
         return 'norm';
     }
 
-    if ([string isEqualToString:@"Nrml"]) { return 'norm'; }
-    if ([string isEqualToString:@"Dslv"]) { return 'diss'; }
-    if ([string isEqualToString:@"Drkn"]) { return 'dark'; }
-    if ([string isEqualToString:@"Mltp"]) { return 'mul '; }
-    if ([string isEqualToString:@"CBrn"]) { return 'idiv'; }
+    if ([string isEqualToString:@"Nrml"] || [string isEqualToString:@"normal"]) { return 'norm'; }
+    if ([string isEqualToString:@"Dslv"] || [string isEqualToString:@"dissolve"]) { return 'diss'; }
+    if ([string isEqualToString:@"Drkn"] || [string isEqualToString:@"darken"]) { return 'dark'; }
+    if ([string isEqualToString:@"Mltp"] || [string isEqualToString:@"multiply"]) { return 'mul '; }
+    if ([string isEqualToString:@"CBrn"] || [string isEqualToString:@"colorBurn"]) { return 'idiv'; }
     if ([string isEqualToString:@"linearBurn"]) { return 'lbrn'; }
-    if ([string isEqualToString:@"Lghn"]) { return 'lite'; }
-    if ([string isEqualToString:@"Scrn"]) { return 'scrn'; }
-    if ([string isEqualToString:@"CDdg"]) { return 'div '; }
+    if ([string isEqualToString:@"Lghn"] || [string isEqualToString:@"lighten"]) { return 'lite'; }
+    if ([string isEqualToString:@"Scrn"] || [string isEqualToString:@"screen"]) { return 'scrn'; }
+    if ([string isEqualToString:@"CDdg"] || [string isEqualToString:@"colorDodge"]) { return 'div '; }
     if ([string isEqualToString:@"linearDodge"]) { return 'lddg'; }
-    if ([string isEqualToString:@"Ovrl"]) { return 'over'; }
-    if ([string isEqualToString:@"SftL"]) { return 'sLit'; }
-    if ([string isEqualToString:@"HrdL"]) { return 'hLit'; }
-    if ([string isEqualToString:@"VvdL"]) { return 'vLit'; }
-    if ([string isEqualToString:@"LnrL"]) { return 'lLit'; }
-    if ([string isEqualToString:@"PnLt"]) { return 'pLit'; }
-    if ([string isEqualToString:@"HrdM"]) { return 'hMix'; }
-    if ([string isEqualToString:@"Dfrn"]) { return 'diff'; }
-    if ([string isEqualToString:@"Xclu"]) { return 'smud'; }
-    if ([string isEqualToString:@"H   "]) { return 'hue '; }
-    if ([string isEqualToString:@"Strt"]) { return 'sat '; }
-    if ([string isEqualToString:@"Clr "]) { return 'colr'; }
-    if ([string isEqualToString:@"Lmns"]) { return 'lum '; }
+    if ([string isEqualToString:@"Ovrl"] || [string isEqualToString:@"overlay"]) { return 'over'; }
+    if ([string isEqualToString:@"SftL"] || [string isEqualToString:@"softLight"]) { return 'sLit'; }
+    if ([string isEqualToString:@"HrdL"] || [string isEqualToString:@"hardLight"]) { return 'hLit'; }
+    if ([string isEqualToString:@"VvdL"] || [string isEqualToString:@"vividLight"]) { return 'vLit'; }
+    if ([string isEqualToString:@"LnrL"] || [string isEqualToString:@"linearLight"]) { return 'lLit'; }
+    if ([string isEqualToString:@"PnLt"] || [string isEqualToString:@"pinLight"]) { return 'pLit'; }
+    if ([string isEqualToString:@"HrdM"] || [string isEqualToString:@"hardMix"]) { return 'hMix'; }
+    if ([string isEqualToString:@"Dfrn"] || [string isEqualToString:@"difference"]) { return 'diff'; }
+    if ([string isEqualToString:@"Xclu"] || [string isEqualToString:@"exclusion"]) { return 'smud'; }
+    if ([string isEqualToString:@"H   "] || [string isEqualToString:@"hue"]) { return 'hue '; }
+    if ([string isEqualToString:@"Strt"] || [string isEqualToString:@"saturation"]) { return 'sat '; }
+    if ([string isEqualToString:@"Clr "] || [string isEqualToString:@"color"]) { return 'colr'; }
+    if ([string isEqualToString:@"Lmns"] || [string isEqualToString:@"luminosity"]) { return 'lum '; }
 
     return 'norm';
 }
@@ -54,7 +54,14 @@ static uint32_t FMPSDBlendModeFromDescriptorString(NSString *string) {
 }
 
 - (double)colorOverlayOpacity {
-    return [[[self attributes] objectForKey:@"Opct"] doubleValue];
+    
+    CGFloat alpha = 1.0;
+    if ([[self attributes] objectForKey:@"Opct"]) {
+        alpha = [[[self attributes] objectForKey:@"Opct"] doubleValue];
+    }
+    
+    return alpha;
+    
 }
 
 - (CGColorRef)colorOverlayColor {
@@ -67,12 +74,7 @@ static uint32_t FMPSDBlendModeFromDescriptorString(NSString *string) {
     double g = [[[colorDesc attributes] objectForKey:@"Grn "] doubleValue] / 255.0;
     double b = [[[colorDesc attributes] objectForKey:@"Bl  "] doubleValue] / 255.0;
     
-    CGFloat alpha = 1.0;
-    if ([[self attributes] objectForKey:@"Opct"]) {
-        alpha = [[[self attributes] objectForKey:@"Opct"] doubleValue] / 100.0;
-    }
-    
-    CGFloat components[] = { r, g, b, alpha };
+    CGFloat components[] = { r, g, b, 1.0 };
     CGColorSpaceRef srgb = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
     CGColorRef color = CGColorCreate(srgb, components);
     CGColorSpaceRelease(srgb);
